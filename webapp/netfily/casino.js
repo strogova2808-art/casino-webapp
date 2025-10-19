@@ -5,8 +5,8 @@ exports.handler = async (event) => {
     // Настройка CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
         'Content-Type': 'application/json'
     };
 
@@ -48,102 +48,153 @@ exports.handler = async (event) => {
         if (!user) {
             user = await db.createUser({
                 user_id: userId,
-                username: data.username,
+                username: data.username || '',
                 first_name: data.first_name || 'Игрок'
             });
         }
 
-        // Обработка действий
         let result = { success: false, error: 'Unknown action' };
 
+        // Обработка различных действий
         switch (action) {
             case 'get_initial_data':
+                const gameHistory = await db.getGameHistory(userId, 10);
                 result = {
                     success: true,
-                    user_data: user
+                    user_data: user,
+                    game_history: gameHistory
                 };
                 break;
 
             case 'update_balance':
                 const newBalance = data.balance;
                 if (newBalance !== undefined) {
-                    await db.updateUser(userId, { balance: newBalance });
+                    const updatedUser = await db.updateUser(userId, { balance: newBalance });
                     await telegram.notifyAdmin(
-                        `🔄 Баланс обновлен\n👤 ${user.first_name}\n💰 ${newBalance} ⭐`,
+                        `🔄 Обновление баланса\n👤 ${user.first_name}\n💰 ${newBalance} ⭐\n🤖 ${botType} бот`,
                         botType
                     );
-                    result = { success: true, message: 'Balance updated' };
+                    result = { 
+                        success: true, 
+                        message: 'Balance updated',
+                        user_data: updatedUser
+                    };
+                } else {
+                    result = { success: false, error: 'Balance not provided' };
                 }
                 break;
 
             case 'game_result':
                 const { bet_amount, win, prize_name, prize_value, combination } = data;
-                await db.addGameRecord(userId, bet_amount, win, prize_name, prize_value, combination);
+                const gameRecorded = await db.addGameRecord(
+                    userId, 
+                    bet_amount, 
+                    win, 
+                    prize_name, 
+                    prize_value, 
+                    combination
+                );
                 
-                if (win) {
-                    await telegram.notifyAdmin(
-                        `🎉 ВЫИГРЫШ!\n👤 ${user.first_name}\n🏆 ${prize_name}\n💰 ${prize_value} ⭐`,
-                        botType
-                    );
+                if (gameRecorded) {
+                    if (win) {
+                        await telegram.notifyAdmin(
+                            `🎉 ВЫИГРЫШ!\n👤 ${user.first_name}\n🏆 ${prize_name}\n💰 ${prize_value} ⭐\n🎰 ${combination}\n🤖 ${botType} бот`,
+                            botType
+                        );
+                    } else {
+                        await telegram.notifyAdmin(
+                            `🎰 Результат игры\n👤 ${user.first_name}\n💸 Ставка: ${bet_amount} ⭐\n❌ Проигрыш\n🤖 ${botType} бот`,
+                            botType
+                        );
+                    }
+                    result = { success: true, message: 'Game recorded' };
                 } else {
-                    await telegram.notifyAdmin(
-                        `🎰 Игра\n👤 ${user.first_name}\n💸 Ставка: ${bet_amount} ⭐\n❌ Проигрыш`,
-                        botType
-                    );
+                    result = { success: false, error: 'Failed to record game' };
                 }
-                result = { success: true, message: 'Game recorded' };
                 break;
 
             case 'deposit_request':
                 const depositAmount = data.amount || 0;
-                await db.addTransaction(userId, 'deposit', depositAmount, 'Запрос на пополнение');
-                
-                // Уведомление админу
-                await telegram.notifyAdmin(
-                    `💰 ЗАПРОС НА ПОПОЛНЕНИЕ\n\n👤 ${user.first_name}\n🆔 ${userId}\n📛 @${user.username || 'нет'}\n💎 ${depositAmount} ⭐\n🤖 ${botType} бот\n\nДля подтверждения:\n/addstars ${userId} ${depositAmount}`,
-                    botType
+                const transactionAdded = await db.addTransaction(
+                    userId, 
+                    'deposit', 
+                    depositAmount, 
+                    'Запрос на пополнение'
                 );
                 
-                // Уведомление пользователю
-                await telegram.notifyUser(
-                    userId,
-                    `✅ <b>Запрос на пополнение принят!</b>\n\n💎 Сумма: ${depositAmount} ⭐\n👤 Администратор уведомлен\n⏳ Ожидайте подтверждения`,
-                    botType
-                );
-                
-                result = { success: true, message: 'Deposit request sent' };
+                if (transactionAdded) {
+                    // Уведомление админу
+                    await telegram.notifyAdmin(
+                        `💰 ЗАПРОС НА ПОПОЛНЕНИЕ\n\n👤 ${user.first_name}\n🆔 ${userId}\n📛 @${user.username || 'нет'}\n💎 ${depositAmount} ⭐\n🤖 ${botType} бот\n\nДля подтверждения:\n/addstars ${userId} ${depositAmount}`,
+                        botType
+                    );
+                    
+                    // Уведомление пользователю
+                    await telegram.notifyUser(
+                        userId,
+                        `✅ <b>Запрос на пополнение принят!</b>\n\n💎 Сумма: ${depositAmount} ⭐\n👤 Администратор уведомлен\n⏳ Ожидайте подтверждения`,
+                        botType
+                    );
+                    
+                    result = { success: true, message: 'Deposit request sent' };
+                } else {
+                    result = { success: false, error: 'Failed to add transaction' };
+                }
                 break;
 
             case 'withdraw_prize':
                 const { prize, value } = data;
-                await db.addTransaction(userId, 'withdraw', value, `Вывод приза: ${prize}`);
-                
-                await telegram.notifyAdmin(
-                    `🎁 ЗАПРОС НА ВЫВОД ПРИЗА\n\n👤 ${user.first_name}\n🆔 ${userId}\n🏆 ${prize}\n💎 ${value} ⭐\n🤖 ${botType} бот`,
-                    botType
+                const withdrawRecorded = await db.addTransaction(
+                    userId, 
+                    'withdraw', 
+                    value, 
+                    `Вывод приза: ${prize}`
                 );
                 
-                await telegram.notifyUser(
-                    userId,
-                    `✅ <b>Запрос на вывод приза принят!</b>\n\n🏆 ${prize}\n💎 ${value} ⭐\n👤 Администратор уведомлен`,
-                    botType
-                );
-                
-                result = { success: true, message: 'Withdraw request sent' };
+                if (withdrawRecorded) {
+                    await telegram.notifyAdmin(
+                        `🎁 ЗАПРОС НА ВЫВОД ПРИЗА\n\n👤 ${user.first_name}\n🆔 ${userId}\n📛 @${user.username || 'нет'}\n🏆 ${prize}\n💎 ${value} ⭐\n🤖 ${botType} бот`,
+                        botType
+                    );
+                    
+                    await telegram.notifyUser(
+                        userId,
+                        `✅ <b>Запрос на вывод приза принят!</b>\n\n🏆 ${prize}\n💎 ${value} ⭐\n👤 Администратор уведомлен`,
+                        botType
+                    );
+                    
+                    result = { success: true, message: 'Withdraw request sent' };
+                } else {
+                    result = { success: false, error: 'Failed to record withdraw' };
+                }
                 break;
 
             case 'test_connection':
                 await telegram.notifyAdmin(
-                    `🔗 Тест связи\n👤 ${user.first_name}\n🆔 ${userId}\n🤖 ${botType} бот\n✅ WebApp подключен`,
+                    `🔗 Тест связи\n👤 ${user.first_name}\n🆔 ${userId}\n🤖 ${botType} бот\n✅ WebApp подключен к Netlify`,
                     botType
                 );
-                result = { success: true, message: 'Connection test successful' };
+                result = { 
+                    success: true, 
+                    message: 'Connection test successful',
+                    server: 'Netlify Functions',
+                    timestamp: new Date().toISOString()
+                };
+                break;
+
+            case 'get_game_history':
+                const history = await db.getGameHistory(userId, data.limit || 10);
+                result = {
+                    success: true,
+                    game_history: history
+                };
                 break;
 
             default:
-                result = { success: false, error: 'Unknown action' };
+                result = { success: false, error: 'Unknown action: ' + action };
         }
 
+        console.log('📤 Ответ:', result);
         return {
             statusCode: 200,
             headers,
@@ -158,7 +209,8 @@ exports.handler = async (event) => {
             headers,
             body: JSON.stringify({
                 success: false,
-                error: error.message
+                error: error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             })
         };
     }
