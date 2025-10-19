@@ -99,6 +99,115 @@ class CasinoApp {
         
         this.init();
     }
+    
+     async initTelegramWebApp() {
+        if (window.Telegram && Telegram.WebApp) {
+            console.log('📱 Инициализация Telegram WebApp...');
+            
+            try {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+                
+                const user = Telegram.WebApp.initDataUnsafe?.user;
+                if (user) {
+                    this.userData = user;
+                    this.userId = user.id;
+                    this.updateUserInfo(user);
+                    this.saveUserProfile(user); // Сохраняем профиль
+                    console.log('👤 Пользователь Telegram:', user);
+                } else {
+                    console.log('⚠️ Данные пользователя не получены');
+                    this.setupFallbackData();
+                }
+                
+                // ... остальной код ...
+            } catch (error) {
+                console.error('❌ Ошибка инициализации Telegram WebApp:', error);
+                this.setupFallbackData();
+            }
+        } else {
+            console.log('⚠️ Telegram WebApp не обнаружен, режим демо');
+            this.setupFallbackData();
+        }
+    }
+
+    updateUserInfo(user) {
+        // Обновляем имя и username
+        const username = user.username ? `@${user.username}` : (user.first_name || 'Игрок');
+        const profileNameElement = document.getElementById('profileName');
+        if (profileNameElement) {
+            profileNameElement.textContent = username;
+        }
+        
+        // Обновляем ID
+        const profileIdElement = document.getElementById('profileId');
+        if (profileIdElement) {
+            profileIdElement.textContent = user.id;
+        }
+        
+        // Обновляем аватар
+        this.updateUserAvatar(user);
+    }
+
+    updateUserAvatar(user) {
+        const avatarContainer = document.getElementById('profileAvatar');
+        if (!avatarContainer) return;
+        
+        if (user.photo_url) {
+            // Используем аватар из Telegram
+            avatarContainer.innerHTML = `
+                <img src="${user.photo_url}" alt="Avatar" class="profile-avatar-img">
+            `;
+        } else {
+            // Создаем градиентный аватар с инициалами
+            const colors = [
+                ['#7f2b8f', '#c44569'], 
+                ['#2b8f8c', '#69c4a4'],
+                ['#8f2b2b', '#c46945'],
+                ['#2b8f4a', '#45c469']
+            ];
+            const colorIndex = (user.id || 0) % colors.length;
+            const userInitial = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
+            
+            avatarContainer.innerHTML = `
+                <div class="gradient-avatar-large" style="background: linear-gradient(135deg, ${colors[colorIndex][0]}, ${colors[colorIndex][1]});">
+                    ${userInitial}
+                </div>
+            `;
+        }
+    }
+
+    saveUserProfile(user) {
+        try {
+            const profileKey = `casino_profile_${user.id}`;
+            const profileData = {
+                user_id: user.id,
+                username: user.username,
+                first_name: user.first_name,
+                last_name: user.last_name || '',
+                photo_url: user.photo_url || '',
+                language_code: user.language_code || 'ru',
+                last_seen: new Date().toISOString()
+            };
+            localStorage.setItem(profileKey, JSON.stringify(profileData));
+            console.log('💾 Профиль сохранен:', profileData);
+        } catch (error) {
+            console.error('❌ Ошибка сохранения профиля:', error);
+        }
+    }
+
+    loadUserProfile(userId) {
+        try {
+            const profileKey = `casino_profile_${userId}`;
+            const savedProfile = localStorage.getItem(profileKey);
+            if (savedProfile) {
+                return JSON.parse(savedProfile);
+            }
+        } catch (error) {
+            console.error('❌ Ошибка загрузки профиля:', error);
+        }
+        return null;
+    }
 
     async sendToNetlify(data) {
         console.log(`📡 Отправка данных в Netlify:`, data);
