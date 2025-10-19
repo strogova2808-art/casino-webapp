@@ -15,6 +15,7 @@ class CasinoApp {
         this.stickersLoaded = false;
         this.quickSpinMode = false;
         this.currentBot = 'main';
+        this.netlifyAvailable = false;
         
         // Правильные призы за 3 одинаковых стикера
         this.prizesConfig = {
@@ -91,18 +92,15 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
-        // Netlify Functions URL - автоматически определяем
-        const currentDomain = window.location.origin;
-        this.netlifyUrl = `${currentDomain}/.netlify/functions/casino`;
+        // ОБНОВЛЕННЫЙ URL Netlify
+        this.netlifyUrl = 'https://sweet-malasada-30b293.netlify.app/.netlify/functions/casino';
         
-        // Если автоматическое определение не работает, раскомментируйте строку ниже:
-        // this.netlifyUrl = 'https://sweet-malasada-30b293.netlify.app/.netlify/functions/casino';
-
         console.log('🎰 Инициализация CasinoApp...');
         console.log('🌐 Netlify URL:', this.netlifyUrl);
         
         this.init();
     }
+
 
     async init() {
         console.log('🎰 Инициализация CasinoApp...');
