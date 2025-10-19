@@ -4,9 +4,10 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  NODE_ENV = "production"
 
 [[redirects]]
-  from = "/api/*"
+  from = "/.netlify/functions/*"
   to = "/.netlify/functions/:splat"
   status = 200
 
@@ -14,4 +15,5 @@
   for = "/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
-    X-Frame-Options = "ALLOWALL"
+    Access-Control-Allow-Headers = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
