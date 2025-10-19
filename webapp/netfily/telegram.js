@@ -12,10 +12,15 @@ class TelegramBot {
     async sendMessage(chatId, message, botType = 'main') {
         try {
             const token = this.tokens[botType];
-            if (!token) return false;
+            if (!token) {
+                console.log('❌ Токен бота не найден:', botType);
+                return false;
+            }
 
-            const url = `https://api.telegram.org/bot${token}/sendMessage`;
+            console.log(`📨 Отправка в Telegram [${botType}]:`, message);
             
+            // Реальная отправка в Telegram
+            const url = `https://api.telegram.org/bot${token}/sendMessage`;
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -27,8 +32,11 @@ class TelegramBot {
                     parse_mode: 'HTML'
                 })
             });
-
-            return response.ok;
+            
+            const result = await response.json();
+            console.log('📨 Результат отправки:', result.ok);
+            
+            return result.ok;
         } catch (error) {
             console.error('❌ Ошибка отправки в Telegram:', error);
             return false;
