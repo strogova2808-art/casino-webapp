@@ -27,17 +27,17 @@
                         <div class="reels-container">
                             <div class="reel" id="reel1">
                                 <div class="reel-sticker" id="sticker1">
-                                    <img src="stickers/bear.gif" alt="Bear" class="sticker-gif">
+                                    <img src="./stickers/bear.gif" alt="Bear" class="sticker-gif">
                                 </div>
                             </div>
                             <div class="reel" id="reel2">
                                 <div class="reel-sticker" id="sticker2">
-                                    <img src="stickers/rose.gif" alt="Rose" class="sticker-gif">
+                                    <img src="./stickers/rose.gif" alt="Rose" class="sticker-gif">
                                 </div>
                             </div>
                             <div class="reel" id="reel3">
                                 <div class="reel-sticker" id="sticker3">
-                                    <img src="stickers/ring.gif" alt="Ring" class="sticker-gif">
+                                    <img src="./stickers/ring.gif" alt="Ring" class="sticker-gif">
                                 </div>
                             </div>
                         </div>
@@ -72,6 +72,7 @@
                     <button class="spin-btn" id="spinBtn" onclick="casino.spinSlot()">
                         <span class="spin-text">КРУТИТЬ ЗА</span>
                         <span class="spin-amount" id="spinAmount">3 ⭐</span>
+                    </button>
                     <button class="spin-btn quick-spin" id="quickSpinBtn" onclick="casino.spinSlot()" style="display: none;">
                         <span class="spin-text">⚡ БЫСТРАЯ КРУТКА</span>
                         <span class="spin-amount" id="quickSpinAmount">3 ⭐</span>
@@ -79,6 +80,11 @@
 
                     <button class="quick-toggle" onclick="casino.toggleQuickSpin()">
                         ⚡ Быстрая крутка
+                    </button>
+
+                    <!-- Кнопка тестирования -->
+                    <button class="quick-toggle" onclick="casino.testConnection()" style="margin-top: 10px; background: #2b8f8c;">
+                        🔗 Тест связи с Netlify
                     </button>
                 </div>
             </div>
@@ -221,6 +227,5 @@
     </div>
 
     <script src="app.js"></script>
-</script>
 </body>
 </html>
