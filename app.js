@@ -92,10 +92,7 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
-        this.netlifyUrl = 'https://whimsical-eclair-8618b5.netlify.app/.netlify/functions/casino';
-        
         console.log('🎰 Инициализация CasinoApp...');
-        console.log('🌐 Netlify URL:', this.netlifyUrl);
         
         this.init();
     }
@@ -209,9 +206,8 @@ class CasinoApp {
         return null;
     }
 
-    async sendToNetlify(data) {
-        console.log(`📡 Отправка данных в Netlify:`, data);
-        console.log(`🌐 URL: ${this.netlifyUrl}`);
+     async sendToNetlify(data) {
+        console.log(`📡 Отправка данных:`, data);
         
         try {
             const response = await fetch(this.netlifyUrl, {
@@ -223,27 +219,28 @@ class CasinoApp {
                 body: JSON.stringify(data)
             });
             
-            console.log('📡 Статус ответа:', response.status);
-            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const result = await response.json();
-            console.log('✅ Ответ от Netlify:', result);
+            
+            // Обновляем данные если они пришли
+            if (result.user_data) {
+                this.updateFromServerData(result.user_data);
+            }
             
             return result;
             
         } catch (error) {
-            console.error('❌ Ошибка отправки в Netlify:', error);
+            console.error('❌ Ошибка отправки:', error);
             
-            // Fallback для тестирования
+            // Fallback
             return {
                 success: true,
-                message: 'Данные сохранены локально (Netlify недоступен)',
                 user_data: {
                     user_id: this.userId,
-                    balance: data.balance || this.userBalance,
+                    balance: this.userBalance,
                     games_played: this.gamesPlayed,
                     total_won: this.totalWon,
                     biggest_win: this.biggestWin,
@@ -252,59 +249,6 @@ class CasinoApp {
             };
         }
     }
-
-    async sendToNetlify(data) {
-    console.log(`📡 Отправка данных в Netlify:`, data);
-    
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
-
-        const response = await fetch(this.netlifyUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(data),
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        console.log('📡 Статус ответа:', response.status);
-        console.log('📡 Заголовки ответа:', response.headers);
-        
-        if (!response.ok) {
-            // Если статус не 200, пробуем прочитать текст ошибки
-            const errorText = await response.text();
-            console.error('❌ HTTP error details:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-        }
-        
-        const result = await response.json();
-        console.log('✅ Ответ от Netlify:', result);
-        
-        return result;
-        
-    } catch (error) {
-        console.error('❌ Ошибка отправки в Netlify:', error);
-        
-        // Fallback response
-        return {
-            success: true,
-            message: 'Данные сохранены локально (Netlify недоступен)',
-            user_data: {
-                user_id: this.userId,
-                balance: data.balance || this.userBalance,
-                games_played: data.games_played || this.gamesPlayed,
-                total_won: data.total_won || this.totalWon,
-                biggest_win: data.biggest_win || this.biggestWin,
-                wins_count: data.wins_count || this.winsCount
-            }
-        };
-    }
-}
 
 async sendToNetlify(data) {
     console.log(`📡 Отправка данных в Netlify:`, data);
@@ -491,22 +435,8 @@ async sendToNetlify(data) {
     }
 
     async sendToBot(data) {
-        console.log(`📡 Отправка данных:`, data);
-        
         const result = await this.sendToNetlify(data);
-            
-        if (result.success) {
-            this.showNotification(result.message || '✅ Запрос обработан!');
-            
-            if (result.user_data) {
-                this.updateFromServerData(result.user_data);
-            }
-            
-            return true;
-        } else {
-            this.showNotification('❌ ' + (result.error || 'Ошибка сервера'));
-            return false;
-        }
+        return result.success;
     }
 
     updateFromServerData(serverData) {
@@ -629,6 +559,111 @@ async sendToNetlify(data) {
         }
     }
 
+    async spinSlot() {
+        console.log('🎰 Начало прокрутки...');
+        
+        if (this.isSpinning) return;
+        
+        if (this.userBalance < this.currentBet) {
+            this.showNotification('❌ Недостаточно звезд!');
+            return;
+        }
+
+        this.isSpinning = true;
+        this.disableBetSelection(true);
+        
+        const spinBtn = this.quickSpinMode ? document.getElementById('quickSpinBtn') : document.getElementById('spinBtn');
+        if (spinBtn) spinBtn.disabled = true;
+
+        try {
+            const resultCombination = document.getElementById('resultCombination');
+            const resultMessage = document.getElementById('resultMessage');
+            
+            if (resultCombination) resultCombination.style.display = 'none';
+            if (resultMessage) resultMessage.textContent = '🎰 Крутим...';
+
+            const spinDuration = this.quickSpinMode ? 1000 : 2000;
+            const spinResult = await this.animateReels(spinDuration);
+            const prize = this.checkWin(spinResult);
+            
+            const oldBalance = this.userBalance;
+            
+            this.userBalance -= this.currentBet;
+            this.gamesPlayed++;
+            
+            if (prize) {
+                this.winsCount++;
+                this.totalWon += prize.value;
+                this.biggestWin = Math.max(this.biggestWin, prize.value);
+                this.userBalance += prize.value;
+                
+                if (resultMessage) resultMessage.textContent = `🎉 ${prize.name}!`;
+                this.addToHistory(true, prize, this.currentBet);
+                this.currentPrize = prize;
+                
+                // Отправляем результат игры
+                const gameData = {
+                    action: 'game_result',
+                    user_id: this.userId,
+                    bet_amount: this.currentBet,
+                    win: true,
+                    prize_name: prize.name,
+                    prize_value: prize.value,
+                    combination: spinResult.join(','),
+                    bot_type: this.currentBot
+                };
+                this.sendToBot(gameData);
+                
+                setTimeout(() => this.showPrizeModal(prize), 1000);
+            } else {
+                if (resultMessage) resultMessage.textContent = '❌ Попробуйте еще раз!';
+                this.addToHistory(false, null, this.currentBet);
+                
+                // Отправляем результат проигрыша
+                const gameData = {
+                    action: 'game_result',
+                    user_id: this.userId,
+                    bet_amount: this.currentBet,
+                    win: false,
+                    combination: spinResult.join(','),
+                    bot_type: this.currentBot
+                };
+                this.sendToBot(gameData);
+            }
+            
+            this.updateUI();
+            await this.saveUserDataToDatabase();
+            
+        } catch (error) {
+            console.error('❌ Ошибка в процессе игры:', error);
+            this.showNotification('❌ Ошибка при сохранении данных');
+        } finally {
+            this.isSpinning = false;
+            if (spinBtn) spinBtn.disabled = false;
+            this.disableBetSelection(false);
+        }
+    }
+
+    processDeposit() {
+        if (this.selectedDepositAmount > 0) {
+            const data = {
+                action: 'deposit_request',
+                user_id: this.userId,
+                amount: this.selectedDepositAmount,
+                bot_type: this.currentBot,
+                username: this.userData?.username,
+                first_name: this.userData?.first_name
+            };
+            
+            this.sendToBot(data);
+            
+            this.showNotification('💰 Запрос отправлен!');
+            this.closeDepositModal();
+        } else {
+            this.showNotification('❌ Выберите сумму');
+        }
+    }
+
     async saveUserDataToDatabase() {
         console.log('💾 Сохранение данных...');
         console.log('💰 Текущий баланс для сохранения:', this.userBalance);
@@ -706,37 +741,6 @@ async sendToNetlify(data) {
             }
             
             this.closePrizeModal();
-        }
-    }
-
-    async testConnection() {
-        console.log('🔗 Тест связи с Netlify...');
-        console.log('🌐 URL:', this.netlifyUrl);
-        
-        this.showNotification('🔗 Тестируем связь с Netlify...');
-        
-        const data = {
-            action: 'test_connection',
-            user_id: this.userId,
-            bot_type: this.currentBot,
-            timestamp: Date.now(),
-            message: 'Тестовое сообщение от WebApp'
-        };
-        
-        console.log('🔗 Тест связи с Netlify:', data);
-        
-        try {
-            const result = await this.sendToNetlify(data);
-            
-            if (result.success) {
-                this.showNotification('✅ Связь с Netlify установлена!');
-                console.log('✅ Тест связи успешен:', result);
-            } else {
-                this.showNotification('❌ Ошибка: ' + (result.error || 'Неизвестная ошибка'));
-            }
-        } catch (error) {
-            console.error('❌ Ошибка связи:', error);
-            this.showNotification('❌ Не удалось подключиться к Netlify');
         }
     }
 
