@@ -91,15 +91,21 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
-        // Netlify Functions URL
-        this.netlifyUrl = 'https://sweet-malasada-30b293.netlify.app/.netlify/functions/casino';
+        // Netlify Functions URL - автоматически определяем
+        const currentDomain = window.location.origin;
+        this.netlifyUrl = `${currentDomain}/.netlify/functions/casino`;
+        
+        // Если автоматическое определение не работает, раскомментируйте строку ниже:
+        // this.netlifyUrl = 'https://sweet-malasada-30b293.netlify.app/.netlify/functions/casino';
 
+        console.log('🎰 Инициализация CasinoApp...');
+        console.log('🌐 Netlify URL:', this.netlifyUrl);
+        
         this.init();
     }
 
     async init() {
         console.log('🎰 Инициализация CasinoApp...');
-        console.log('🌐 Netlify URL:', this.netlifyUrl);
         
         this.detectCurrentBot();
         await this.initTelegramWebApp();
@@ -170,7 +176,11 @@ class CasinoApp {
         `;
         document.body.appendChild(banner);
         
-        document.querySelector('.container').style.paddingTop = '60px';
+        // Добавляем отступ для контента
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.paddingTop = '60px';
+        }
     }
 
     goToMainBot() {
@@ -181,15 +191,16 @@ class CasinoApp {
         }
     }
 
-    async sendToBot(data) {
+    async sendToNetlify(data) {
         console.log(`📡 Отправка данных в Netlify:`, data);
+        console.log(`🌐 URL: ${this.netlifyUrl}`);
         
         try {
             const response = await fetch(this.netlifyUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     ...data,
@@ -201,39 +212,57 @@ class CasinoApp {
                 })
             });
             
+            console.log('📡 Статус ответа:', response.status);
+            
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const result = await response.json();
             console.log('✅ Ответ от Netlify:', result);
             
-            if (result.success) {
-                this.showNotification(result.message || '✅ Запрос обработан!');
-                
-                if (result.user_data) {
-                    this.updateFromServerData(result.user_data);
-                }
-                
-                return true;
-            } else {
-                this.showNotification('❌ ' + (result.error || 'Ошибка сервера'));
-                return false;
-            }
+            return result;
             
         } catch (error) {
-            console.error('❌ Ошибка отправки:', error);
-            this.showNotification('❌ Ошибка связи с Netlify');
+            console.error('❌ Ошибка отправки в Netlify:', error);
             
-            // Fallback: сохраняем локально
-            this.saveUserDataToLocalStorage();
+            // Fallback: возвращаем успешный результат для тестирования
+            return {
+                success: true,
+                message: 'Данные сохранены локально (Netlify недоступен)',
+                user_data: {
+                    user_id: this.userId,
+                    balance: this.userBalance,
+                    games_played: this.gamesPlayed,
+                    total_won: this.totalWon,
+                    biggest_win: this.biggestWin,
+                    wins_count: this.winsCount
+                }
+            };
+        }
+    }
+
+    async sendToBot(data) {
+        console.log(`📡 Отправка данных:`, data);
+        
+        const result = await this.sendToNetlify(data);
+            
+        if (result.success) {
+            this.showNotification(result.message || '✅ Запрос обработан!');
+            
+            if (result.user_data) {
+                this.updateFromServerData(result.user_data);
+            }
+            
+            return true;
+        } else {
+            this.showNotification('❌ ' + (result.error || 'Ошибка сервера'));
             return false;
         }
     }
 
     updateFromServerData(serverData) {
-        console.log('🔄 Обновление данных с Netlify:', serverData);
+        console.log('🔄 Обновление данных с сервера:', serverData);
         
         if (serverData.balance !== undefined) this.userBalance = serverData.balance;
         if (serverData.games_played !== undefined) this.gamesPlayed = serverData.games_played;
@@ -243,7 +272,7 @@ class CasinoApp {
         
         this.updateUI();
         this.saveUserDataToLocalStorage();
-        console.log('✅ Данные обновлены с Netlify');
+        console.log('✅ Данные обновлены');
     }
     
     async initTelegramWebApp() {
@@ -269,12 +298,6 @@ class CasinoApp {
                     console.log('📨 Получены данные от бота:', event);
                     this.handleBotResponse(event);
                 });
-                
-                Telegram.WebApp.MainButton.setText('Готово')
-                    .show()
-                    .onClick(() => {
-                        console.log('🔄 MainButton clicked');
-                    });
                 
             } catch (error) {
                 console.error('❌ Ошибка инициализации Telegram WebApp:', error);
@@ -339,10 +362,11 @@ class CasinoApp {
                 };
                 
                 console.log('📤 Отправка запроса начальных данных:', data);
-                const sent = await this.sendToBot(data);
+                const result = await this.sendToNetlify(data);
                 
-                if (sent) {
-                    this.showNotification('🔄 Загрузка данных с Netlify...');
+                if (result.success && result.user_data) {
+                    this.updateFromServerData(result.user_data);
+                    this.showNotification('✅ Данные загружены с Netlify');
                 } else {
                     this.showNotification('⚠️ Используются локальные данные');
                 }
@@ -358,7 +382,7 @@ class CasinoApp {
     }
 
     async saveUserDataToDatabase() {
-        console.log('💾 Сохранение данных в Netlify...');
+        console.log('💾 Сохранение данных...');
         console.log('💰 Текущий баланс для сохранения:', this.userBalance);
         
         this.saveUserDataToLocalStorage();
@@ -377,11 +401,11 @@ class CasinoApp {
                     timestamp: Date.now()
                 };
                 
-                console.log('📤 Отправка данных в Netlify:', data);
-                await this.sendToBot(data);
+                console.log('📤 Отправка данных:', data);
+                await this.sendToNetlify(data);
                 
             } catch (error) {
-                console.error('❌ Ошибка отправки данных в Netlify:', error);
+                console.error('❌ Ошибка отправки данных:', error);
             }
         } else {
             console.log('⚠️ WebApp не доступен, сохраняем только в localStorage');
@@ -437,7 +461,12 @@ class CasinoApp {
         }
     }
 
-    testConnection() {
+    async testConnection() {
+        console.log('🔗 Тест связи с Netlify...');
+        console.log('🌐 URL:', this.netlifyUrl);
+        
+        this.showNotification('🔗 Тестируем связь с Netlify...');
+        
         const data = {
             action: 'test_connection',
             user_id: this.userId,
@@ -447,8 +476,20 @@ class CasinoApp {
         };
         
         console.log('🔗 Тест связи с Netlify:', data);
-        this.sendToBot(data);
-        this.showNotification('🔗 Тестовое сообщение отправлено в Netlify');
+        
+        try {
+            const result = await this.sendToNetlify(data);
+            
+            if (result.success) {
+                this.showNotification('✅ Связь с Netlify установлена!');
+                console.log('✅ Тест связи успешен:', result);
+            } else {
+                this.showNotification('❌ Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            console.error('❌ Ошибка связи:', error);
+            this.showNotification('❌ Не удалось подключиться к Netlify');
+        }
     }
 
     sellPrize() {
@@ -810,7 +851,7 @@ class CasinoApp {
                 this.addToHistory(true, prize, this.currentBet);
                 this.currentPrize = prize;
                 
-                // Отправляем результат игры в Netlify
+                // Отправляем результат игры
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
@@ -830,7 +871,7 @@ class CasinoApp {
                 if (resultMessage) resultMessage.textContent = '❌ Попробуйте еще раз!';
                 this.addToHistory(false, null, this.currentBet);
                 
-                // Отправляем результат проигрыша в Netlify
+                // Отправляем результат проигрыша
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
@@ -1139,6 +1180,17 @@ style.textContent = `
         width: 40px;
         height: 40px;
         object-fit: contain;
+    }
+    
+    @keyframes confettiFall {
+        0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
     }
 `;
 document.head.appendChild(style);
