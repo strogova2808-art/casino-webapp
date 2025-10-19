@@ -1,10 +1,51 @@
+const fetch = require('node-fetch');
+
 // In-memory database
 const users = new Map();
+
+// Telegram bot tokens
+const BOT_TOKENS = {
+    'main': '8373706621:AAFTOCrsNuSuov9pBzj1C1xk7vvC3zo01Nk',
+    'proxy': '7662090078:AAEGodkX0D982ZQplWqKHafGlucATOzzevc',
+    'admin_notifications': '7662090078:AAEGodkX0D982ZQplWqKHafGlucATOzzevc' // Бот для уведомлений админу
+};
+
+const ADMIN_CHAT_ID = 1376689155;
+
+// Функция отправки в Telegram
+async function sendTelegramMessage(chatId, message, botToken = BOT_TOKENS.admin_notifications) {
+    try {
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML'
+            })
+        });
+        
+        const result = await response.json();
+        console.log('📨 Результат отправки в Telegram:', result.ok);
+        return result.ok;
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Telegram:', error);
+        return false;
+    }
+}
+
+// Функция отправки уведомления админу
+async function notifyAdmin(message, botType = 'main') {
+    const botToken = BOT_TOKENS.admin_notifications;
+    return await sendTelegramMessage(ADMIN_CHAT_ID, message, botToken);
+}
 
 exports.handler = async (event, context) => {
     console.log('🎰 Casino Function called');
     console.log('Method:', event.httpMethod);
-    console.log('Path:', event.path);
     
     // CORS headers
     const headers = {
@@ -17,17 +58,11 @@ exports.handler = async (event, context) => {
 
     // Handle OPTIONS preflight
     if (event.httpMethod === 'OPTIONS') {
-        console.log('🔄 Handling OPTIONS preflight');
-        return {
-            statusCode: 200,
-            headers,
-            body: ''
-        };
+        return { statusCode: 200, headers, body: '' };
     }
 
-    // Handle GET requests (for direct browser access)
+    // Handle GET requests
     if (event.httpMethod === 'GET') {
-        console.log('📥 GET request received');
         return {
             statusCode: 200,
             headers,
@@ -36,15 +71,7 @@ exports.handler = async (event, context) => {
                 message: '🎰 Casino API is working!',
                 server: 'Netlify Functions',
                 timestamp: new Date().toISOString(),
-                total_users: users.size,
-                available_actions: [
-                    'get_initial_data',
-                    'update_balance', 
-                    'game_result',
-                    'deposit_request',
-                    'withdraw_prize',
-                    'test_connection'
-                ]
+                total_users: users.size
             })
         };
     }
@@ -52,22 +79,7 @@ exports.handler = async (event, context) => {
     // Handle POST requests
     if (event.httpMethod === 'POST') {
         try {
-            // Parse JSON body
-            let data = {};
-            try {
-                data = JSON.parse(event.body || '{}');
-            } catch (parseError) {
-                console.error('❌ JSON parse error:', parseError);
-                return {
-                    statusCode: 400,
-                    headers,
-                    body: JSON.stringify({
-                        success: false,
-                        error: 'Invalid JSON'
-                    })
-                };
-            }
-
+            const data = JSON.parse(event.body || '{}');
             console.log('📥 POST Request data:', data);
 
             const action = data.action;
@@ -111,13 +123,24 @@ exports.handler = async (event, context) => {
                 case 'update_balance':
                     if (data.balance !== undefined) {
                         user.balance = data.balance;
+                        
+                        // Уведомление админу об изменении баланса
+                        await notifyAdmin(
+                            `💰 <b>ИЗМЕНЕНИЕ БАЛАНСА</b>\n\n` +
+                            `👤 <b>Пользователь:</b> ${user.first_name}\n` +
+                            `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                            `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
+                            `💎 <b>Новый баланс:</b> ${data.balance} ⭐\n` +
+                            `🤖 <b>Бот:</b> ${botType}\n` +
+                            `⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}`,
+                            botType
+                        );
+                        
                         result = { 
                             success: true, 
                             message: 'Balance updated',
                             user_data: user
                         };
-                    } else {
-                        result = { success: false, error: 'Balance not provided' };
                     }
                     break;
 
@@ -127,39 +150,92 @@ exports.handler = async (event, context) => {
                         user.wins_count++;
                         user.total_won += data.prize_value || 0;
                         user.biggest_win = Math.max(user.biggest_win, data.prize_value || 0);
-                        console.log(`🎉 User ${userId} won: ${data.prize_name} (${data.prize_value} ⭐)`);
+                        
+                        // Уведомление админу о выигрыше
+                        await notifyAdmin(
+                            `🎉 <b>ВЫИГРЫШ В КАЗИНО!</b>\n\n` +
+                            `👤 <b>Пользователь:</b> ${user.first_name}\n` +
+                            `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                            `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
+                            `🏆 <b>Приз:</b> ${data.prize_name}\n` +
+                            `💎 <b>Сумма:</b> ${data.prize_value} ⭐\n` +
+                            `🎰 <b>Комбинация:</b> ${data.combination}\n` +
+                            `💰 <b>Ставка:</b> ${data.bet_amount} ⭐\n` +
+                            `🤖 <b>Бот:</b> ${botType}\n` +
+                            `⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}`,
+                            botType
+                        );
                     }
                     result = { success: true, message: 'Game recorded' };
                     break;
 
                 case 'deposit_request':
-                    console.log(`💰 Deposit request from ${userId}: ${data.amount} ⭐`);
+                    const depositAmount = data.amount || 0;
+                    
+                    // Уведомление админу о запросе на пополнение
+                    await notifyAdmin(
+                        `💰 <b>ЗАПРОС НА ПОПОЛНЕНИЕ</b>\n\n` +
+                        `👤 <b>Пользователь:</b> ${user.first_name}\n` +
+                        `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                        `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
+                        `💎 <b>Сумма:</b> ${depositAmount} ⭐\n` +
+                        `🤖 <b>Бот:</b> ${botType}\n\n` +
+                        `✅ <b>Для подтверждения:</b>\n` +
+                        `<code>/addstars ${userId} ${depositAmount}</code>\n\n` +
+                        `⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}`,
+                        botType
+                    );
+                    
                     result = { 
                         success: true, 
-                        message: 'Deposit request received',
-                        amount: data.amount
+                        message: 'Deposit request sent to admin',
+                        amount: depositAmount
                     };
                     break;
 
                 case 'withdraw_prize':
-                    console.log(`🎁 Withdraw request from ${userId}: ${data.prize} (${data.value} ⭐)`);
+                    // Уведомление админу о выводе приза
+                    await notifyAdmin(
+                        `🎁 <b>ЗАПРОС НА ВЫВОД ПРИЗА</b>\n\n` +
+                        `👤 <b>Пользователь:</b> ${user.first_name}\n` +
+                        `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                        `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
+                        `🏆 <b>Приз:</b> ${data.prize}\n` +
+                        `💎 <b>Стоимость:</b> ${data.value} ⭐\n` +
+                        `🤖 <b>Бот:</b> ${botType}\n\n` +
+                        `✅ <b>Для подтверждения свяжитесь с пользователем</b>\n\n` +
+                        `⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}`,
+                        botType
+                    );
+                    
                     result = { 
                         success: true, 
-                        message: 'Withdraw request received',
+                        message: 'Withdraw request sent to admin',
                         prize: data.prize,
                         value: data.value
                     };
                     break;
 
                 case 'test_connection':
-                    console.log(`🔗 Test connection from ${userId}`);
+                    // Тестовое уведомление
+                    await notifyAdmin(
+                        `🔗 <b>ТЕСТ СВЯЗИ</b>\n\n` +
+                        `👤 <b>Пользователь:</b> ${user.first_name}\n` +
+                        `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                        `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
+                        `🌐 <b>Сервер:</b> Netlify Functions\n` +
+                        `🤖 <b>Бот:</b> ${botType}\n` +
+                        `✅ <b>Статус:</b> Связь установлена\n` +
+                        `⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}`,
+                        botType
+                    );
+                    
                     result = { 
                         success: true, 
                         message: 'Connection test successful',
                         server: 'Netlify Functions',
                         timestamp: new Date().toISOString(),
-                        user_data: user,
-                        total_users: users.size
+                        user_data: user
                     };
                     break;
 
@@ -171,35 +247,27 @@ exports.handler = async (event, context) => {
             }
 
             console.log('📤 Response:', result);
-
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify(result)
-            };
+            return { statusCode: 200, headers, body: JSON.stringify(result) };
 
         } catch (error) {
             console.error('❌ Handler error:', error);
-            
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
                     success: false,
-                    error: error.message,
-                    timestamp: new Date().toISOString()
+                    error: error.message
                 })
             };
         }
     }
 
-    // Method not allowed
     return {
         statusCode: 405,
         headers,
         body: JSON.stringify({
             success: false,
-            error: 'Method not allowed: ' + event.httpMethod
+            error: 'Method not allowed'
         })
     };
 };
