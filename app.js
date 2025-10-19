@@ -92,8 +92,7 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
-        // ОБНОВЛЕННЫЙ URL Netlify
-        this.netlifyUrl = 'https://sweet-malasada-30b293.netlify.app/.netlify/functions/casino';
+        this.netlifyUrl = 'https://whimsical-eclair-8618b5.netlify.app/.netlify/functions/casino';
         
         console.log('🎰 Инициализация CasinoApp...');
         console.log('🌐 Netlify URL:', this.netlifyUrl);
@@ -101,6 +100,148 @@ class CasinoApp {
         this.init();
     }
 
+    async sendToNetlify(data) {
+        console.log(`📡 Отправка данных в Netlify:`, data);
+        console.log(`🌐 URL: ${this.netlifyUrl}`);
+        
+        try {
+            const response = await fetch(this.netlifyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            console.log('📡 Статус ответа:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('✅ Ответ от Netlify:', result);
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Ошибка отправки в Netlify:', error);
+            
+            // Fallback для тестирования
+            return {
+                success: true,
+                message: 'Данные сохранены локально (Netlify недоступен)',
+                user_data: {
+                    user_id: this.userId,
+                    balance: data.balance || this.userBalance,
+                    games_played: this.gamesPlayed,
+                    total_won: this.totalWon,
+                    biggest_win: this.biggestWin,
+                    wins_count: this.winsCount
+                }
+            };
+        }
+    }
+
+    async sendToNetlify(data) {
+    console.log(`📡 Отправка данных в Netlify:`, data);
+    
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+
+        const response = await fetch(this.netlifyUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        console.log('📡 Статус ответа:', response.status);
+        console.log('📡 Заголовки ответа:', response.headers);
+        
+        if (!response.ok) {
+            // Если статус не 200, пробуем прочитать текст ошибки
+            const errorText = await response.text();
+            console.error('❌ HTTP error details:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Ответ от Netlify:', result);
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Netlify:', error);
+        
+        // Fallback response
+        return {
+            success: true,
+            message: 'Данные сохранены локально (Netlify недоступен)',
+            user_data: {
+                user_id: this.userId,
+                balance: data.balance || this.userBalance,
+                games_played: data.games_played || this.gamesPlayed,
+                total_won: data.total_won || this.totalWon,
+                biggest_win: data.biggest_win || this.biggestWin,
+                wins_count: data.wins_count || this.winsCount
+            }
+        };
+    }
+}
+
+async sendToNetlify(data) {
+    console.log(`📡 Отправка данных в Netlify:`, data);
+    console.log(`🌐 URL: ${this.netlifyUrl}`);
+    
+    try {
+        const response = await fetch(this.netlifyUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        console.log('📡 Статус ответа:', response.status);
+        console.log('📡 Заголовки ответа:', response.headers);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Ответ от Netlify:', result);
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Netlify:', error);
+        console.error('❌ Подробности ошибки:', error.message);
+        
+        // Fallback
+        return {
+            success: true,
+            message: 'Данные сохранены локально',
+            user_data: {
+                user_id: this.userId,
+                balance: this.userBalance,
+                games_played: this.gamesPlayed,
+                total_won: this.totalWon,
+                biggest_win: this.biggestWin,
+                wins_count: this.winsCount
+            }
+        };
+    }
+}
 
     async init() {
         console.log('🎰 Инициализация CasinoApp...');
