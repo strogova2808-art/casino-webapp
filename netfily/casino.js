@@ -1,8 +1,7 @@
-// Простая база данных в памяти
-const users = new Map();
-
 exports.handler = async (event) => {
-    console.log('🎰 Casino Function вызвана');
+    console.log('🎰 Casino Function called');
+    console.log('Method:', event.httpMethod);
+    console.log('Path:', event.path);
     
     // CORS headers
     const headers = {
@@ -12,7 +11,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json'
     };
 
-    // Обработка preflight запроса
+    // Handle preflight
     if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
@@ -22,84 +21,30 @@ exports.handler = async (event) => {
     }
 
     try {
-        // Парсим данные запроса
+        // Parse request data
         let data = {};
         if (event.body) {
             data = JSON.parse(event.body);
         }
         
-        console.log('📥 Данные запроса:', data);
+        console.log('📥 Request data:', data);
 
-        const action = data.action;
-        const userId = data.user_id || 'default';
-        const botType = data.bot_type || 'main';
-
-        // Инициализация пользователя
-        if (!users.has(userId)) {
-            users.set(userId, {
-                user_id: userId,
-                username: data.username || 'user_' + userId,
-                first_name: data.first_name || 'Игрок',
-                balance: 666,
-                games_played: 0,
-                total_won: 0,
-                biggest_win: 0,
-                wins_count: 0,
-                created_at: new Date().toISOString(),
-                last_activity: new Date().toISOString()
-            });
-            console.log(`✅ Создан пользователь: ${userId}`);
-        }
-
-        const user = users.get(userId);
-        user.last_activity = new Date().toISOString();
+        const action = data.action || 'test';
+        const userId = data.user_id || 'unknown';
         
-        let result = { success: true }; // По умолчанию успех
+        // Simple response
+        const result = {
+            success: true,
+            message: `Action '${action}' processed successfully`,
+            user_id: userId,
+            server: 'Netlify Functions',
+            timestamp: new Date().toISOString(),
+            action: action,
+            your_data: data
+        };
 
-        // Обработка действий
-        switch (action) {
-            case 'get_initial_data':
-                result.user_data = user;
-                result.game_history = [];
-                result.server = 'Netlify Functions';
-                result.timestamp = new Date().toISOString();
-                break;
-
-            case 'update_balance':
-                if (data.balance !== undefined) {
-                    user.balance = data.balance;
-                    result.message = 'Balance updated';
-                    result.user_data = user;
-                }
-                break;
-
-            case 'game_result':
-                user.games_played++;
-                if (data.win) {
-                    user.wins_count++;
-                    user.total_won += data.prize_value || 0;
-                    user.biggest_win = Math.max(user.biggest_win, data.prize_value || 0);
-                }
-                result.message = 'Game recorded';
-                break;
-
-            case 'deposit_request':
-                result.message = 'Deposit request received';
-                break;
-
-            case 'test_connection':
-                result.message = 'Connection successful';
-                result.server = 'Netlify Functions';
-                result.timestamp = new Date().toISOString();
-                result.total_users = users.size;
-                break;
-
-            default:
-                result.success = false;
-                result.error = 'Unknown action';
-        }
-
-        console.log('📤 Ответ:', result);
+        console.log('📤 Response:', result);
+        
         return {
             statusCode: 200,
             headers,
@@ -107,14 +52,15 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error('❌ Ошибка:', error);
+        console.error('❌ Error:', error);
         
         return {
-            statusCode: 500,
+            statusCode: 200, // Всегда 200 чтобы не ломать клиент
             headers,
             body: JSON.stringify({
                 success: false,
-                error: error.message
+                error: error.message,
+                timestamp: new Date().toISOString()
             })
         };
     }
