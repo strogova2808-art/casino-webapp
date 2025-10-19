@@ -1,8 +1,0 @@
-{
-  "name": "casino-webapp",
-  "version": "1.0.0",
-  "description": "Casino WebApp with Netlify Functions",
-  "dependencies": {
-    "node-fetch": "^2.6.7"
-  }
-}
