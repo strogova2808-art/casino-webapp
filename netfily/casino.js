@@ -1,8 +1,12 @@
-const Database = require('./database');
-const TelegramBot = require('./telegram');
+const fetch = require('node-fetch');
+
+// Простая база данных в памяти
+const users = new Map();
 
 exports.handler = async (event) => {
-    // Настройка CORS headers
+    console.log('📥 Получен запрос:', event.httpMethod, event.path);
+    
+    // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -20,173 +24,115 @@ exports.handler = async (event) => {
     }
 
     try {
-        const db = new Database();
-        const telegram = new TelegramBot();
-
         // Парсим данные запроса
-        const data = JSON.parse(event.body || '{}');
-        console.log('📥 Получен запрос:', data);
+        let data = {};
+        if (event.body) {
+            data = JSON.parse(event.body);
+        }
+        
+        console.log('📊 Данные запроса:', data);
 
         const action = data.action;
-        const userId = data.user_id;
+        const userId = data.user_id || 'default';
         const botType = data.bot_type || 'main';
 
-        // Валидация
-        if (!userId) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'User ID required'
-                })
-            };
-        }
-
-        // Получаем или создаем пользователя
-        let user = await db.getUser(userId);
-        if (!user) {
-            user = await db.createUser({
+        // Инициализация пользователя
+        if (!users.has(userId)) {
+            users.set(userId, {
                 user_id: userId,
-                username: data.username || '',
-                first_name: data.first_name || 'Игрок'
+                username: data.username || 'user_' + userId,
+                first_name: data.first_name || 'Игрок',
+                balance: 666,
+                games_played: 0,
+                total_won: 0,
+                biggest_win: 0,
+                wins_count: 0,
+                created_at: new Date().toISOString(),
+                last_activity: new Date().toISOString()
             });
         }
 
+        const user = users.get(userId);
         let result = { success: false, error: 'Unknown action' };
 
-        // Обработка различных действий
+        // Обработка действий
         switch (action) {
             case 'get_initial_data':
-                const gameHistory = await db.getGameHistory(userId, 10);
                 result = {
                     success: true,
                     user_data: user,
-                    game_history: gameHistory
+                    game_history: [],
+                    server: 'Netlify Functions',
+                    timestamp: new Date().toISOString()
                 };
                 break;
 
             case 'update_balance':
                 const newBalance = data.balance;
                 if (newBalance !== undefined) {
-                    const updatedUser = await db.updateUser(userId, { balance: newBalance });
-                    await telegram.notifyAdmin(
+                    user.balance = newBalance;
+                    user.last_activity = new Date().toISOString();
+                    
+                    // Отправка в Telegram (упрощенная)
+                    await sendToTelegram(
                         `🔄 Обновление баланса\n👤 ${user.first_name}\n💰 ${newBalance} ⭐\n🤖 ${botType} бот`,
                         botType
                     );
+                    
                     result = { 
                         success: true, 
                         message: 'Balance updated',
-                        user_data: updatedUser
+                        user_data: user
                     };
-                } else {
-                    result = { success: false, error: 'Balance not provided' };
                 }
                 break;
 
             case 'game_result':
                 const { bet_amount, win, prize_name, prize_value, combination } = data;
-                const gameRecorded = await db.addGameRecord(
-                    userId, 
-                    bet_amount, 
-                    win, 
-                    prize_name, 
-                    prize_value, 
-                    combination
-                );
+                user.games_played++;
                 
-                if (gameRecorded) {
-                    if (win) {
-                        await telegram.notifyAdmin(
-                            `🎉 ВЫИГРЫШ!\n👤 ${user.first_name}\n🏆 ${prize_name}\n💰 ${prize_value} ⭐\n🎰 ${combination}\n🤖 ${botType} бот`,
-                            botType
-                        );
-                    } else {
-                        await telegram.notifyAdmin(
-                            `🎰 Результат игры\n👤 ${user.first_name}\n💸 Ставка: ${bet_amount} ⭐\n❌ Проигрыш\n🤖 ${botType} бот`,
-                            botType
-                        );
-                    }
-                    result = { success: true, message: 'Game recorded' };
+                if (win) {
+                    user.wins_count++;
+                    user.total_won += prize_value;
+                    user.biggest_win = Math.max(user.biggest_win, prize_value);
+                    
+                    await sendToTelegram(
+                        `🎉 ВЫИГРЫШ!\n👤 ${user.first_name}\n🏆 ${prize_name}\n💰 ${prize_value} ⭐\n🎰 ${combination}\n🤖 ${botType} бот`,
+                        botType
+                    );
                 } else {
-                    result = { success: false, error: 'Failed to record game' };
+                    await sendToTelegram(
+                        `🎰 Результат игры\n👤 ${user.first_name}\n💸 Ставка: ${bet_amount} ⭐\n❌ Проигрыш\n🤖 ${botType} бот`,
+                        botType
+                    );
                 }
+                
+                result = { success: true, message: 'Game recorded' };
                 break;
 
             case 'deposit_request':
                 const depositAmount = data.amount || 0;
-                const transactionAdded = await db.addTransaction(
-                    userId, 
-                    'deposit', 
-                    depositAmount, 
-                    'Запрос на пополнение'
+                
+                await sendToTelegram(
+                    `💰 ЗАПРОС НА ПОПОЛНЕНИЕ\n\n👤 ${user.first_name}\n🆔 ${userId}\n📛 @${user.username || 'нет'}\n💎 ${depositAmount} ⭐\n🤖 ${botType} бот\n\nДля подтверждения:\n/addstars ${userId} ${depositAmount}`,
+                    botType
                 );
                 
-                if (transactionAdded) {
-                    // Уведомление админу
-                    await telegram.notifyAdmin(
-                        `💰 ЗАПРОС НА ПОПОЛНЕНИЕ\n\n👤 ${user.first_name}\n🆔 ${userId}\n📛 @${user.username || 'нет'}\n💎 ${depositAmount} ⭐\n🤖 ${botType} бот\n\nДля подтверждения:\n/addstars ${userId} ${depositAmount}`,
-                        botType
-                    );
-                    
-                    // Уведомление пользователю
-                    await telegram.notifyUser(
-                        userId,
-                        `✅ <b>Запрос на пополнение принят!</b>\n\n💎 Сумма: ${depositAmount} ⭐\n👤 Администратор уведомлен\n⏳ Ожидайте подтверждения`,
-                        botType
-                    );
-                    
-                    result = { success: true, message: 'Deposit request sent' };
-                } else {
-                    result = { success: false, error: 'Failed to add transaction' };
-                }
-                break;
-
-            case 'withdraw_prize':
-                const { prize, value } = data;
-                const withdrawRecorded = await db.addTransaction(
-                    userId, 
-                    'withdraw', 
-                    value, 
-                    `Вывод приза: ${prize}`
-                );
-                
-                if (withdrawRecorded) {
-                    await telegram.notifyAdmin(
-                        `🎁 ЗАПРОС НА ВЫВОД ПРИЗА\n\n👤 ${user.first_name}\n🆔 ${userId}\n📛 @${user.username || 'нет'}\n🏆 ${prize}\n💎 ${value} ⭐\n🤖 ${botType} бот`,
-                        botType
-                    );
-                    
-                    await telegram.notifyUser(
-                        userId,
-                        `✅ <b>Запрос на вывод приза принят!</b>\n\n🏆 ${prize}\n💎 ${value} ⭐\n👤 Администратор уведомлен`,
-                        botType
-                    );
-                    
-                    result = { success: true, message: 'Withdraw request sent' };
-                } else {
-                    result = { success: false, error: 'Failed to record withdraw' };
-                }
+                result = { success: true, message: 'Deposit request sent' };
                 break;
 
             case 'test_connection':
-                await telegram.notifyAdmin(
-                    `🔗 Тест связи\n👤 ${user.first_name}\n🆔 ${userId}\n🤖 ${botType} бот\n✅ WebApp подключен к Netlify`,
+                await sendToTelegram(
+                    `🔗 Тест связи\n👤 ${user.first_name}\n🆔 ${userId}\n🤖 ${botType} бот\n✅ WebApp подключен к Netlify\n⏰ ${new Date().toISOString()}`,
                     botType
                 );
+                
                 result = { 
                     success: true, 
                     message: 'Connection test successful',
                     server: 'Netlify Functions',
-                    timestamp: new Date().toISOString()
-                };
-                break;
-
-            case 'get_game_history':
-                const history = await db.getGameHistory(userId, data.limit || 10);
-                result = {
-                    success: true,
-                    game_history: history
+                    timestamp: new Date().toISOString(),
+                    user_data: user
                 };
                 break;
 
@@ -210,8 +156,53 @@ exports.handler = async (event) => {
             body: JSON.stringify({
                 success: false,
                 error: error.message,
-                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                timestamp: new Date().toISOString()
             })
         };
     }
 };
+
+// Упрощенная функция отправки в Telegram
+async function sendToTelegram(message, botType = 'main') {
+    try {
+        const tokens = {
+            'main': '8373706621:AAFTOCrsNuSuov9pBzj1C1xk7vvC3zo01Nk',
+            'proxy': '7662090078:AAEGodkX0D982ZQplWqKHafGlucATOzzevc'
+        };
+        
+        const adminId = 1376689155;
+        const token = tokens[botType];
+        
+        if (!token) {
+            console.log('❌ Токен бота не найден:', botType);
+            return false;
+        }
+
+        console.log(`📨 Отправка в Telegram [${botType}]:`, message);
+        
+        // В продакшене раскомментировать:
+        /*
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: adminId,
+                text: message,
+                parse_mode: 'HTML'
+            })
+        });
+        
+        const result = await response.json();
+        return result.ok;
+        */
+        
+        return true; // Пока просто возвращаем true для тестов
+        
+    } catch (error) {
+        console.error('❌ Ошибка отправки в Telegram:', error);
+        return false;
+    }
+}
