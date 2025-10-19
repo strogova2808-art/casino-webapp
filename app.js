@@ -16,7 +16,7 @@ class CasinoApp {
         this.quickSpinMode = false;
         this.currentBot = 'main';
         this.netlifyAvailable = false;
-        
+
         // Правильные призы за 3 одинаковых стикера
         this.prizesConfig = {
             3: {
@@ -92,209 +92,13 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
+        // Netlify Functions URL
+        this.netlifyUrl = 'https://whimsical-eclair-8618b5.netlify.app/.netlify/functions/casino';
+        
         console.log('🎰 Инициализация CasinoApp...');
         
         this.init();
     }
-    
-     async initTelegramWebApp() {
-        if (window.Telegram && Telegram.WebApp) {
-            console.log('📱 Инициализация Telegram WebApp...');
-            
-            try {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-                
-                const user = Telegram.WebApp.initDataUnsafe?.user;
-                if (user) {
-                    this.userData = user;
-                    this.userId = user.id;
-                    this.updateUserInfo(user);
-                    this.saveUserProfile(user); // Сохраняем профиль
-                    console.log('👤 Пользователь Telegram:', user);
-                } else {
-                    console.log('⚠️ Данные пользователя не получены');
-                    this.setupFallbackData();
-                }
-                
-                // ... остальной код ...
-            } catch (error) {
-                console.error('❌ Ошибка инициализации Telegram WebApp:', error);
-                this.setupFallbackData();
-            }
-        } else {
-            console.log('⚠️ Telegram WebApp не обнаружен, режим демо');
-            this.setupFallbackData();
-        }
-    }
-
-    updateUserInfo(user) {
-        // Обновляем имя и username
-        const username = user.username ? `@${user.username}` : (user.first_name || 'Игрок');
-        const profileNameElement = document.getElementById('profileName');
-        if (profileNameElement) {
-            profileNameElement.textContent = username;
-        }
-        
-        // Обновляем ID
-        const profileIdElement = document.getElementById('profileId');
-        if (profileIdElement) {
-            profileIdElement.textContent = user.id;
-        }
-        
-        // Обновляем аватар
-        this.updateUserAvatar(user);
-    }
-
-    updateUserAvatar(user) {
-        const avatarContainer = document.getElementById('profileAvatar');
-        if (!avatarContainer) return;
-        
-        if (user.photo_url) {
-            // Используем аватар из Telegram
-            avatarContainer.innerHTML = `
-                <img src="${user.photo_url}" alt="Avatar" class="profile-avatar-img">
-            `;
-        } else {
-            // Создаем градиентный аватар с инициалами
-            const colors = [
-                ['#7f2b8f', '#c44569'], 
-                ['#2b8f8c', '#69c4a4'],
-                ['#8f2b2b', '#c46945'],
-                ['#2b8f4a', '#45c469']
-            ];
-            const colorIndex = (user.id || 0) % colors.length;
-            const userInitial = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
-            
-            avatarContainer.innerHTML = `
-                <div class="gradient-avatar-large" style="background: linear-gradient(135deg, ${colors[colorIndex][0]}, ${colors[colorIndex][1]});">
-                    ${userInitial}
-                </div>
-            `;
-        }
-    }
-
-    saveUserProfile(user) {
-        try {
-            const profileKey = `casino_profile_${user.id}`;
-            const profileData = {
-                user_id: user.id,
-                username: user.username,
-                first_name: user.first_name,
-                last_name: user.last_name || '',
-                photo_url: user.photo_url || '',
-                language_code: user.language_code || 'ru',
-                last_seen: new Date().toISOString()
-            };
-            localStorage.setItem(profileKey, JSON.stringify(profileData));
-            console.log('💾 Профиль сохранен:', profileData);
-        } catch (error) {
-            console.error('❌ Ошибка сохранения профиля:', error);
-        }
-    }
-
-    loadUserProfile(userId) {
-        try {
-            const profileKey = `casino_profile_${userId}`;
-            const savedProfile = localStorage.getItem(profileKey);
-            if (savedProfile) {
-                return JSON.parse(savedProfile);
-            }
-        } catch (error) {
-            console.error('❌ Ошибка загрузки профиля:', error);
-        }
-        return null;
-    }
-
-     async sendToNetlify(data) {
-        console.log(`📡 Отправка данных:`, data);
-        
-        try {
-            const response = await fetch(this.netlifyUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            // Обновляем данные если они пришли
-            if (result.user_data) {
-                this.updateFromServerData(result.user_data);
-            }
-            
-            return result;
-            
-        } catch (error) {
-            console.error('❌ Ошибка отправки:', error);
-            
-            // Fallback
-            return {
-                success: true,
-                user_data: {
-                    user_id: this.userId,
-                    balance: this.userBalance,
-                    games_played: this.gamesPlayed,
-                    total_won: this.totalWon,
-                    biggest_win: this.biggestWin,
-                    wins_count: this.winsCount
-                }
-            };
-        }
-    }
-
-async sendToNetlify(data) {
-    console.log(`📡 Отправка данных в Netlify:`, data);
-    console.log(`🌐 URL: ${this.netlifyUrl}`);
-    
-    try {
-        const response = await fetch(this.netlifyUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        
-        console.log('📡 Статус ответа:', response.status);
-        console.log('📡 Заголовки ответа:', response.headers);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('✅ Ответ от Netlify:', result);
-        
-        return result;
-        
-    } catch (error) {
-        console.error('❌ Ошибка отправки в Netlify:', error);
-        console.error('❌ Подробности ошибки:', error.message);
-        
-        // Fallback
-        return {
-            success: true,
-            message: 'Данные сохранены локально',
-            user_data: {
-                user_id: this.userId,
-                balance: this.userBalance,
-                games_played: this.gamesPlayed,
-                total_won: this.totalWon,
-                biggest_win: this.biggestWin,
-                wins_count: this.winsCount
-            }
-        };
-    }
-}
 
     async init() {
         console.log('🎰 Инициализация CasinoApp...');
@@ -368,7 +172,6 @@ async sendToNetlify(data) {
         `;
         document.body.appendChild(banner);
         
-        // Добавляем отступ для контента
         const container = document.querySelector('.container');
         if (container) {
             container.style.paddingTop = '60px';
@@ -384,8 +187,7 @@ async sendToNetlify(data) {
     }
 
     async sendToNetlify(data) {
-        console.log(`📡 Отправка данных в Netlify:`, data);
-        console.log(`🌐 URL: ${this.netlifyUrl}`);
+        console.log(`📡 Отправка данных:`, data);
         
         try {
             const response = await fetch(this.netlifyUrl, {
@@ -394,14 +196,7 @@ async sendToNetlify(data) {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    ...data,
-                    user_id: this.userId,
-                    bot_type: this.currentBot,
-                    timestamp: Date.now(),
-                    username: this.userData?.username,
-                    first_name: this.userData?.first_name
-                })
+                body: JSON.stringify(data)
             });
             
             console.log('📡 Статус ответа:', response.status);
@@ -416,12 +211,11 @@ async sendToNetlify(data) {
             return result;
             
         } catch (error) {
-            console.error('❌ Ошибка отправки в Netlify:', error);
+            console.error('❌ Ошибка отправки:', error);
             
-            // Fallback: возвращаем успешный результат для тестирования
+            // Fallback - возвращаем успех даже при ошибке
             return {
                 success: true,
-                message: 'Данные сохранены локально (Netlify недоступен)',
                 user_data: {
                     user_id: this.userId,
                     balance: this.userBalance,
@@ -435,7 +229,15 @@ async sendToNetlify(data) {
     }
 
     async sendToBot(data) {
+        console.log(`🤖 Отправка действия: ${data.action}`);
+        
         const result = await this.sendToNetlify(data);
+        
+        // Обновляем данные если они пришли
+        if (result.success && result.user_data) {
+            this.updateFromServerData(result.user_data);
+        }
+        
         return result.success;
     }
 
@@ -466,16 +268,12 @@ async sendToNetlify(data) {
                     this.userData = user;
                     this.userId = user.id;
                     this.updateUserInfo(user);
+                    this.saveUserProfile(user);
                     console.log('👤 Пользователь Telegram:', user);
                 } else {
                     console.log('⚠️ Данные пользователя не получены');
                     this.setupFallbackData();
                 }
-                
-                Telegram.WebApp.onEvent('webAppDataReceived', (event) => {
-                    console.log('📨 Получены данные от бота:', event);
-                    this.handleBotResponse(event);
-                });
                 
             } catch (error) {
                 console.error('❌ Ошибка инициализации Telegram WebApp:', error);
@@ -487,43 +285,75 @@ async sendToNetlify(data) {
         }
     }
 
-    handleBotResponse(event) {
-        try {
-            console.log('📨 Обработка данных от бота:', event);
-            
-            if (event) {
-                let data;
-                if (typeof event === 'string') {
-                    data = JSON.parse(event);
-                } else if (event.data) {
-                    data = JSON.parse(event.data);
-                } else {
-                    data = event;
-                }
-                
-                console.log('📊 Данные от бота:', data);
-                
-                if (data.balance !== undefined) {
-                    this.userBalance = data.balance;
-                    this.gamesPlayed = data.games_played || this.gamesPlayed;
-                    this.totalWon = data.total_won || this.totalWon;
-                    this.biggestWin = data.biggest_win || this.biggestWin;
-                    this.winsCount = data.wins_count || this.winsCount;
-                    
-                    this.updateUI();
-                    this.saveUserDataToLocalStorage();
-                    
-                    console.log('✅ Данные обновлены от бота, баланс:', this.userBalance);
-                    this.showNotification('✅ Данные синхронизированы!');
-                }
-                
-                if (data.message) {
-                    this.showNotification(data.message);
-                }
-            }
-        } catch (error) {
-            console.error('❌ Ошибка обработки данных от бота:', error);
+    updateUserInfo(user) {
+        const username = user.username ? `@${user.username}` : (user.first_name || 'Игрок');
+        const profileNameElement = document.getElementById('profileName');
+        if (profileNameElement) {
+            profileNameElement.textContent = username;
         }
+        
+        const profileIdElement = document.getElementById('profileId');
+        if (profileIdElement) {
+            profileIdElement.textContent = user.id;
+        }
+        
+        this.updateUserAvatar(user);
+    }
+
+    updateUserAvatar(user) {
+        const avatarContainer = document.getElementById('profileAvatar');
+        if (!avatarContainer) return;
+        
+        if (user.photo_url) {
+            avatarContainer.innerHTML = `
+                <img src="${user.photo_url}" alt="Avatar" class="profile-avatar-img">
+            `;
+        } else {
+            const colors = [
+                ['#7f2b8f', '#c44569'], 
+                ['#2b8f8c', '#69c4a4'],
+                ['#8f2b2b', '#c46945'],
+                ['#2b8f4a', '#45c469']
+            ];
+            const colorIndex = (user.id || 0) % colors.length;
+            const userInitial = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
+            
+            avatarContainer.innerHTML = `
+                <div class="gradient-avatar-large" style="background: linear-gradient(135deg, ${colors[colorIndex][0]}, ${colors[colorIndex][1]});">
+                    ${userInitial}
+                </div>
+            `;
+        }
+    }
+
+    saveUserProfile(user) {
+        try {
+            const profileKey = `casino_profile_${user.id}`;
+            const profileData = {
+                user_id: user.id,
+                username: user.username,
+                first_name: user.first_name,
+                last_name: user.last_name || '',
+                photo_url: user.photo_url || '',
+                language_code: user.language_code || 'ru',
+                last_seen: new Date().toISOString()
+            };
+            localStorage.setItem(profileKey, JSON.stringify(profileData));
+            console.log('💾 Профиль сохранен:', profileData);
+        } catch (error) {
+            console.error('❌ Ошибка сохранения профиля:', error);
+        }
+    }
+
+    setupFallbackData() {
+        this.userData = { 
+            id: Date.now(), 
+            first_name: 'Игрок', 
+            username: 'player' 
+        };
+        this.userId = this.userData.id;
+        this.updateUserInfo(this.userData);
+        console.log('👤 Используются тестовые данные');
     }
 
     async loadInitialData() {
@@ -536,7 +366,9 @@ async sendToNetlify(data) {
                 const data = {
                     action: 'get_initial_data',
                     user_id: this.userId,
-                    bot_type: this.currentBot
+                    bot_type: this.currentBot,
+                    username: this.userData?.username,
+                    first_name: this.userData?.first_name
                 };
                 
                 console.log('📤 Отправка запроса начальных данных:', data);
@@ -544,129 +376,16 @@ async sendToNetlify(data) {
                 
                 if (result.success && result.user_data) {
                     this.updateFromServerData(result.user_data);
-                    this.showNotification('✅ Данные загружены с Netlify');
-                } else {
-                    this.showNotification('⚠️ Используются локальные данные');
                 }
                 
             } catch (error) {
                 console.error('❌ Ошибка отправки запроса данных:', error);
-                this.showNotification('⚠️ Используются локальные данные');
             }
-        } else {
-            console.log('⚠️ WebApp не доступен, используем локальные данные');
-            this.showNotification('🎮 Режим офлайн');
-        }
-    }
-
-    async spinSlot() {
-        console.log('🎰 Начало прокрутки...');
-        
-        if (this.isSpinning) return;
-        
-        if (this.userBalance < this.currentBet) {
-            this.showNotification('❌ Недостаточно звезд!');
-            return;
-        }
-
-        this.isSpinning = true;
-        this.disableBetSelection(true);
-        
-        const spinBtn = this.quickSpinMode ? document.getElementById('quickSpinBtn') : document.getElementById('spinBtn');
-        if (spinBtn) spinBtn.disabled = true;
-
-        try {
-            const resultCombination = document.getElementById('resultCombination');
-            const resultMessage = document.getElementById('resultMessage');
-            
-            if (resultCombination) resultCombination.style.display = 'none';
-            if (resultMessage) resultMessage.textContent = '🎰 Крутим...';
-
-            const spinDuration = this.quickSpinMode ? 1000 : 2000;
-            const spinResult = await this.animateReels(spinDuration);
-            const prize = this.checkWin(spinResult);
-            
-            const oldBalance = this.userBalance;
-            
-            this.userBalance -= this.currentBet;
-            this.gamesPlayed++;
-            
-            if (prize) {
-                this.winsCount++;
-                this.totalWon += prize.value;
-                this.biggestWin = Math.max(this.biggestWin, prize.value);
-                this.userBalance += prize.value;
-                
-                if (resultMessage) resultMessage.textContent = `🎉 ${prize.name}!`;
-                this.addToHistory(true, prize, this.currentBet);
-                this.currentPrize = prize;
-                
-                // Отправляем результат игры
-                const gameData = {
-                    action: 'game_result',
-                    user_id: this.userId,
-                    bet_amount: this.currentBet,
-                    win: true,
-                    prize_name: prize.name,
-                    prize_value: prize.value,
-                    combination: spinResult.join(','),
-                    bot_type: this.currentBot
-                };
-                this.sendToBot(gameData);
-                
-                setTimeout(() => this.showPrizeModal(prize), 1000);
-            } else {
-                if (resultMessage) resultMessage.textContent = '❌ Попробуйте еще раз!';
-                this.addToHistory(false, null, this.currentBet);
-                
-                // Отправляем результат проигрыша
-                const gameData = {
-                    action: 'game_result',
-                    user_id: this.userId,
-                    bet_amount: this.currentBet,
-                    win: false,
-                    combination: spinResult.join(','),
-                    bot_type: this.currentBot
-                };
-                this.sendToBot(gameData);
-            }
-            
-            this.updateUI();
-            await this.saveUserDataToDatabase();
-            
-        } catch (error) {
-            console.error('❌ Ошибка в процессе игры:', error);
-            this.showNotification('❌ Ошибка при сохранении данных');
-        } finally {
-            this.isSpinning = false;
-            if (spinBtn) spinBtn.disabled = false;
-            this.disableBetSelection(false);
-        }
-    }
-
-    processDeposit() {
-        if (this.selectedDepositAmount > 0) {
-            const data = {
-                action: 'deposit_request',
-                user_id: this.userId,
-                amount: this.selectedDepositAmount,
-                bot_type: this.currentBot,
-                username: this.userData?.username,
-                first_name: this.userData?.first_name
-            };
-            
-            this.sendToBot(data);
-            
-            this.showNotification('💰 Запрос отправлен!');
-            this.closeDepositModal();
-        } else {
-            this.showNotification('❌ Выберите сумму');
         }
     }
 
     async saveUserDataToDatabase() {
         console.log('💾 Сохранение данных...');
-        console.log('💰 Текущий баланс для сохранения:', this.userBalance);
         
         this.saveUserDataToLocalStorage();
         
@@ -681,7 +400,8 @@ async sendToNetlify(data) {
                     biggest_win: this.biggestWin,
                     wins_count: this.winsCount,
                     bot_type: this.currentBot,
-                    timestamp: Date.now()
+                    username: this.userData?.username,
+                    first_name: this.userData?.first_name
                 };
                 
                 console.log('📤 Отправка данных:', data);
@@ -690,8 +410,6 @@ async sendToNetlify(data) {
             } catch (error) {
                 console.error('❌ Ошибка отправки данных:', error);
             }
-        } else {
-            console.log('⚠️ WebApp не доступен, сохраняем только в localStorage');
         }
     }
 
@@ -702,21 +420,18 @@ async sendToNetlify(data) {
                 user_id: this.userId,
                 amount: this.selectedDepositAmount,
                 bot_type: this.currentBot,
-                timestamp: Date.now()
+                username: this.userData?.username,
+                first_name: this.userData?.first_name
             };
             
-            console.log('💰 Отправка запроса на пополнение:', data);
+            console.log(`💰 Отправка запроса на пополнение: ${this.selectedDepositAmount} ⭐`);
+            
             this.sendToBot(data);
             
-            if (this.currentBot === 'proxy') {
-                this.showNotification('🔄 Запрос на пополнение отправлен на модерацию!');
-            } else {
-                this.showNotification('💰 Запрос на пополнение отправлен администратору!');
-            }
-            
+            this.showNotification('💰 Запрос отправлен!');
             this.closeDepositModal();
         } else {
-            this.showNotification('❌ Выберите сумму для пополнения');
+            this.showNotification('❌ Выберите сумму');
         }
     }
 
@@ -729,17 +444,13 @@ async sendToNetlify(data) {
                 value: this.currentPrize.value,
                 sticker: this.currentPrize.sticker,
                 bot_type: this.currentBot,
-                timestamp: Date.now()
+                username: this.userData?.username,
+                first_name: this.userData?.first_name
             };
             
             this.sendToBot(data);
             
-            if (this.currentBot === 'proxy') {
-                this.showNotification('🔄 Запрос на вывод приза отправлен на модерацию!');
-            } else {
-                this.showNotification('🎁 Запрос на вывод приза отправлен!');
-            }
-            
+            this.showNotification('🎁 Запрос отправлен!');
             this.closePrizeModal();
         }
     }
@@ -853,50 +564,6 @@ async sendToNetlify(data) {
         if (prizeModal) prizeModal.style.display = 'block';
         
         this.createConfetti();
-    }
-
-    setupFallbackData() {
-        this.userData = { 
-            id: Date.now(), 
-            first_name: 'Игрок', 
-            username: 'player' 
-        };
-        this.userId = this.userData.id;
-        this.updateUserInfo(this.userData);
-        console.log('👤 Используются тестовые данные');
-    }
-
-    updateUserInfo(user) {
-        const username = user.username ? `@${user.username}` : (user.first_name || 'Игрок');
-        const profileNameElement = document.getElementById('profileName');
-        if (profileNameElement) {
-            profileNameElement.textContent = username;
-        }
-        
-        const profileIdElement = document.getElementById('profileId');
-        if (profileIdElement) {
-            profileIdElement.textContent = this.userId;
-        }
-        
-        this.updateUserAvatar(user);
-    }
-
-    updateUserAvatar(user) {
-        const avatarContainer = document.getElementById('profileAvatar');
-        if (avatarContainer) {
-            if (user.photo_url) {
-                avatarContainer.innerHTML = `<img src="${user.photo_url}" alt="Avatar">`;
-            } else {
-                const colors = [['#7f2b8f', '#c44569'], ['#2b8f8c', '#69c4a4']];
-                const colorIndex = (user.id || 0) % colors.length;
-                const userInitial = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
-                avatarContainer.innerHTML = `
-                    <div class="gradient-avatar-large" style="background: linear-gradient(135deg, ${colors[colorIndex][0]}, ${colors[colorIndex][1]});">
-                        ${userInitial}
-                    </div>
-                `;
-            }
-        }
     }
 
     setupEventListeners() {
@@ -1052,15 +719,10 @@ async sendToNetlify(data) {
 
     async spinSlot() {
         console.log('🎰 Начало прокрутки...');
-        console.log('💰 Текущий баланс:', this.userBalance, 'Ставка:', this.currentBet);
         
-        if (this.isSpinning) {
-            console.log('❌ Уже крутится');
-            return;
-        }
+        if (this.isSpinning) return;
         
         if (this.userBalance < this.currentBet) {
-            console.log('❌ Недостаточно звезд');
             this.showNotification('❌ Недостаточно звезд!');
             return;
         }
@@ -1087,8 +749,7 @@ async sendToNetlify(data) {
             this.userBalance -= this.currentBet;
             this.gamesPlayed++;
             
-            console.log('💰 Списано ставки:', this.currentBet);
-            console.log('💰 Баланс после списания:', this.userBalance);
+            console.log(`💰 Баланс после списания: ${this.userBalance}`);
 
             if (prize) {
                 this.winsCount++;
@@ -1096,14 +757,13 @@ async sendToNetlify(data) {
                 this.biggestWin = Math.max(this.biggestWin, prize.value);
                 this.userBalance += prize.value;
                 
-                console.log('🎉 Выигрыш:', prize.name, 'на', prize.value, 'звезд');
-                console.log('💰 Баланс после выигрыша:', this.userBalance);
+                console.log(`🎉 Выигрыш: ${prize.value} ⭐`);
                 
-                if (resultMessage) resultMessage.textContent = `🎉 Выигрыш: ${prize.name}!`;
+                if (resultMessage) resultMessage.textContent = `🎉 ${prize.name}!`;
                 this.addToHistory(true, prize, this.currentBet);
                 this.currentPrize = prize;
                 
-                // Отправляем результат игры
+                // Отправляем результат игры - ВЫИГРЫШ
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
@@ -1113,17 +773,19 @@ async sendToNetlify(data) {
                     prize_value: prize.value,
                     combination: spinResult.join(','),
                     bot_type: this.currentBot,
-                    timestamp: Date.now()
+                    username: this.userData?.username,
+                    first_name: this.userData?.first_name
                 };
-                this.sendToBot(gameData);
+                await this.sendToBot(gameData);
                 
                 setTimeout(() => this.showPrizeModal(prize), 1000);
             } else {
                 console.log('❌ Проигрыш');
+                
                 if (resultMessage) resultMessage.textContent = '❌ Попробуйте еще раз!';
                 this.addToHistory(false, null, this.currentBet);
                 
-                // Отправляем результат проигрыша
+                // Отправляем результат игры - ПРОИГРЫШ
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
@@ -1131,17 +793,16 @@ async sendToNetlify(data) {
                     win: false,
                     combination: spinResult.join(','),
                     bot_type: this.currentBot,
-                    timestamp: Date.now()
+                    username: this.userData?.username,
+                    first_name: this.userData?.first_name
                 };
-                this.sendToBot(gameData);
+                await this.sendToBot(gameData);
             }
             
-            console.log(`💰 Баланс изменился: ${oldBalance} -> ${this.userBalance}`);
+            console.log(`💰 Итоговый баланс: ${this.userBalance}`);
             
             this.updateUI();
             await this.saveUserDataToDatabase();
-            
-            console.log('✅ Игра завершена, данные сохранены');
             
         } catch (error) {
             console.error('❌ Ошибка в процессе игры:', error);
@@ -1444,6 +1105,27 @@ style.textContent = `
             opacity: 0;
         }
     }
+    
+    .profile-avatar-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--accent-purple);
+    }
+    
+    .gradient-avatar-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+        border: 3px solid var(--accent-purple);
+    }
 `;
 document.head.appendChild(style);
 
@@ -1451,10 +1133,6 @@ document.head.appendChild(style);
 const casino = new CasinoApp();
 
 // Глобальные функции для кнопок HTML
-window.testBotConnection = function() {
-    casino.testConnection();
-};
-
 window.goToMainBot = function() {
     casino.goToMainBot();
 };
