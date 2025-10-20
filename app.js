@@ -91,9 +91,10 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
+        // Обновленный URL для нового домена
         this.netlifyUrl = 'https://teal-lollipop-dfedaf.netlify.app/.netlify/functions/casino';
         
-        console.log('🎰 Инициализация CasinoApp...');
+        console.log('🎰 Инициализация CasinoApp для teal-lollipop...');
         
         this.init();
     }
@@ -112,7 +113,7 @@ class CasinoApp {
         this.updateHistory();
         this.setInitialStickers();
         
-        console.log('✅ CasinoApp инициализирован');
+        console.log('✅ CasinoApp инициализирован для teal-lollipop');
     }
 
     detectCurrentBot() {
@@ -120,14 +121,30 @@ class CasinoApp {
         
         const urlParams = new URLSearchParams(window.location.search);
         const startParam = urlParams.get('startapp') || urlParams.get('start');
+        const tgWebAppData = urlParams.get('tgWebAppData');
         
-        if (startParam === 'consoltotka_bot' || startParam.includes('consoltotka')) {
+        // Анализ различных параметров для определения бота
+        if (startParam === 'consoltotka_bot' || startParam?.includes('consoltotka')) {
             this.currentBot = 'proxy';
             console.log('🔧 Определен КОНСОЛЬ-БОТ @consoltotka_bot');
             this.showProxyBanner();
-        } else if (startParam === 'sosazvezd_bot' || startParam.includes('sosazvezd')) {
+        } else if (startParam === 'sosazvezd_bot' || startParam?.includes('sosazvezd')) {
             this.currentBot = 'main';
             console.log('🎰 Определен ОСНОВНОЙ БОТ @sosazvezd_bot');
+        } else if (tgWebAppData) {
+            // Парсим tgWebAppData для получения информации
+            try {
+                const decodedData = decodeURIComponent(tgWebAppData);
+                const params = new URLSearchParams(decodedData);
+                const userStr = params.get('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    console.log('👤 Пользователь из tgWebAppData:', user);
+                }
+            } catch (e) {
+                console.log('❌ Ошибка парсинга tgWebAppData:', e);
+            }
+            this.currentBot = 'main';
         } else {
             this.currentBot = 'main';
             console.log('🎰 Определен ОСНОВНОЙ БОТ (по умолчанию)');
@@ -170,6 +187,7 @@ class CasinoApp {
         `;
         document.body.appendChild(banner);
         
+        // Добавляем отступ для контента
         const container = document.querySelector('.container');
         if (container) {
             container.style.paddingTop = '60px';
@@ -177,10 +195,11 @@ class CasinoApp {
     }
 
     goToMainBot() {
+        const mainBotUrl = 'https://t.me/sosazvezd_bot?startapp=sosazvezd_bot';
         if (window.Telegram && Telegram.WebApp) {
-            Telegram.WebApp.openTelegramLink('https://t.me/sosazvezd_bot?startapp=sosazvezd_bot');
+            Telegram.WebApp.openTelegramLink(mainBotUrl);
         } else {
-            window.open('https://t.me/sosazvezd_bot', '_blank');
+            window.open(mainBotUrl, '_blank');
         }
     }
 
@@ -227,6 +246,10 @@ class CasinoApp {
                         this.setupFallbackData();
                     }
                 }
+                
+                // Настройка внешнего вида WebApp
+                Telegram.WebApp.setHeaderColor('#2c3e50');
+                Telegram.WebApp.setBackgroundColor('#1a1a2e');
                 
             } catch (error) {
                 console.error('❌ Ошибка инициализации Telegram WebApp:', error);
@@ -344,7 +367,8 @@ class CasinoApp {
                     bot_type: this.currentBot,
                     timestamp: Date.now(),
                     username: this.userData?.username,
-                    first_name: this.userData?.first_name
+                    first_name: this.userData?.first_name,
+                    domain: 'teal-lollipop-dfedaf'
                 })
             });
             
@@ -420,7 +444,8 @@ class CasinoApp {
                     user_id: this.userId,
                     bot_type: this.currentBot,
                     username: this.userData?.username,
-                    first_name: this.userData?.first_name
+                    first_name: this.userData?.first_name,
+                    domain: 'teal-lollipop-dfedaf'
                 };
                 
                 console.log('📤 Отправка запроса начальных данных:', data);
@@ -453,7 +478,8 @@ class CasinoApp {
                     wins_count: this.winsCount,
                     bot_type: this.currentBot,
                     username: this.userData?.username,
-                    first_name: this.userData?.first_name
+                    first_name: this.userData?.first_name,
+                    domain: 'teal-lollipop-dfedaf'
                 };
                 
                 console.log('📤 Отправка данных:', data);
@@ -473,7 +499,8 @@ class CasinoApp {
                 amount: this.selectedDepositAmount,
                 bot_type: this.currentBot,
                 username: this.userData?.username,
-                first_name: this.userData?.first_name
+                first_name: this.userData?.first_name,
+                domain: 'teal-lollipop-dfedaf'
             };
             
             console.log('💰 Отправка запроса на пополнение:', data);
@@ -496,7 +523,8 @@ class CasinoApp {
                 sticker: this.currentPrize.sticker,
                 bot_type: this.currentBot,
                 username: this.userData?.username,
-                first_name: this.userData?.first_name
+                first_name: this.userData?.first_name,
+                domain: 'teal-lollipop-dfedaf'
             };
             
             this.sendToBot(data);
@@ -549,7 +577,8 @@ class CasinoApp {
                 userId: this.userId,
                 username: this.userData?.username,
                 first_name: this.userData?.first_name,
-                last_updated: Date.now()
+                last_updated: Date.now(),
+                domain: 'teal-lollipop-dfedaf'
             };
             localStorage.setItem(userKey, JSON.stringify(data));
             console.log('💾 Данные сохранены в localStorage');
@@ -827,7 +856,8 @@ class CasinoApp {
                     combination: spinResult.join(','),
                     bot_type: this.currentBot,
                     username: this.userData?.username,
-                    first_name: this.userData?.first_name
+                    first_name: this.userData?.first_name,
+                    domain: 'teal-lollipop-dfedaf'
                 };
                 this.sendToBot(gameData);
                 
@@ -846,7 +876,8 @@ class CasinoApp {
                     combination: spinResult.join(','),
                     bot_type: this.currentBot,
                     username: this.userData?.username,
-                    first_name: this.userData?.first_name
+                    first_name: this.userData?.first_name,
+                    domain: 'teal-lollipop-dfedaf'
                 };
                 this.sendToBot(gameData);
             }
@@ -978,7 +1009,7 @@ class CasinoApp {
     selectDeposit(amount) {
         this.selectedDepositAmount = amount;
         
-        document.querySelectorAll('.deposit-option').forEach(option        document.querySelectorAll('.deposit-option').forEach(option => {
+        document.querySelectorAll('.deposit-option').forEach(option => {
             option.classList.toggle('selected', parseInt(option.dataset.amount) === amount);
         });
         
@@ -1063,7 +1094,7 @@ class CasinoApp {
 let casino;
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 DOM загружен, инициализация CasinoApp...');
+    console.log('🚀 DOM загружен, инициализация CasinoApp для teal-lollipop...');
     casino = new CasinoApp();
 });
 
@@ -1167,15 +1198,3 @@ window.addEventListener('orientationchange', function() {
         window.scrollTo(0, 0);
     }, 100);
 });
-
-// Service Worker для оффлайн-работы (если нужно)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('✅ ServiceWorker зарегистрирован: ', registration.scope);
-        }, function(err) {
-            console.log('❌ Ошибка регистрации ServiceWorker: ', err);
-        });
-    });
-}
-
