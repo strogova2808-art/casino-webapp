@@ -45,7 +45,6 @@ async function notifyAdmin(message, botType = 'main') {
 
 exports.handler = async (event, context) => {
     console.log('🎰 Casino Function called');
-    console.log('Method:', event.httpMethod);
     
     // CORS headers
     const headers = {
@@ -176,12 +175,11 @@ exports.handler = async (event, context) => {
                         );
                     }
                     
-                    result.user_data = user; // Возвращаем обновленные данные
+                    result.user_data = user;
                     break;
 
                 case 'deposit_request':
                     const depositAmount = data.amount || 0;
-                    const requestId = `${userId}_${Date.now()}`;
                     
                     console.log(`💰 Deposit request from ${userId}: ${depositAmount} ⭐`);
                     
@@ -192,13 +190,10 @@ exports.handler = async (event, context) => {
                         `🆔 <b>ID:</b> <code>${userId}</code>\n` +
                         `📛 <b>Username:</b> @${username || 'нет'}\n` +
                         `💎 <b>Сумма:</b> ${depositAmount} ⭐\n` +
-                        `🤖 <b>Бот:</b> ${botType}\n\n` +
-                        `🆔 <b>ID запроса:</b> <code>${requestId}</code>`,
+                        `🤖 <b>Бот:</b> ${botType}`,
                         botType
                     );
                     
-                    result.request_id = requestId;
-                    result.amount = depositAmount;
                     break;
 
                 case 'withdraw_prize':
@@ -219,8 +214,6 @@ exports.handler = async (event, context) => {
                         botType
                     );
                     
-                    result.prize = prizeName;
-                    result.value = prizeValue;
                     break;
 
                 default:
