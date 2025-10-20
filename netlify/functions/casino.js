@@ -93,7 +93,7 @@ exports.handler = async (event, context) => {
                     user_id: userId,
                     username: username,
                     first_name: firstName,
-                    balance: 666,
+                    balance: 222,
                     games_played: 0,
                     total_won: 0,
                     biggest_win: 0,
@@ -396,3 +396,4 @@ exports.handler = async (event, context) => {
         })
     };
 };
+
