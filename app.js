@@ -1,7 +1,7 @@
 class CasinoApp {
     constructor() {
         this.userData = null;
-        this.userBalance = 666;
+        this.userBalance = 222; // НОВЫЙ БАЛАНС ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ
         this.currentBet = 3;
         this.isSpinning = false;
         this.gamesPlayed = 0;
@@ -15,6 +15,7 @@ class CasinoApp {
         this.stickersLoaded = false;
         this.quickSpinMode = false;
         this.currentBot = 'main';
+        this.isNewUser = true;
         
         // Правильные призы за 3 одинаковых стикера
         this.prizesConfig = {
@@ -91,7 +92,6 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
-        // Обновленный URL для нового домена
         this.netlifyUrl = 'https://teal-lollipop-dfedaf.netlify.app/.netlify/functions/casino';
         
         console.log('🎰 Инициализация CasinoApp для teal-lollipop...');
@@ -123,7 +123,6 @@ class CasinoApp {
         const startParam = urlParams.get('startapp') || urlParams.get('start');
         const tgWebAppData = urlParams.get('tgWebAppData');
         
-        // Анализ различных параметров для определения бота
         if (startParam === 'consoltotka_bot' || startParam?.includes('consoltotka')) {
             this.currentBot = 'proxy';
             console.log('🔧 Определен КОНСОЛЬ-БОТ @consoltotka_bot');
@@ -132,7 +131,6 @@ class CasinoApp {
             this.currentBot = 'main';
             console.log('🎰 Определен ОСНОВНОЙ БОТ @sosazvezd_bot');
         } else if (tgWebAppData) {
-            // Парсим tgWebAppData для получения информации
             try {
                 const decodedData = decodeURIComponent(tgWebAppData);
                 const params = new URLSearchParams(decodedData);
@@ -187,7 +185,6 @@ class CasinoApp {
         `;
         document.body.appendChild(banner);
         
-        // Добавляем отступ для контента
         const container = document.querySelector('.container');
         if (container) {
             container.style.paddingTop = '60px';
@@ -211,7 +208,6 @@ class CasinoApp {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 
-                // Основной способ получения данных пользователя
                 let user = Telegram.WebApp.initDataUnsafe?.user;
                 
                 if (user) {
@@ -220,7 +216,6 @@ class CasinoApp {
                     this.userId = user.id;
                     this.updateUserInfo(user);
                 } else {
-                    // Альтернативный способ: парсим initData вручную
                     const initData = Telegram.WebApp.initData;
                     if (initData) {
                         console.log('🔄 Пробуем парсить initData вручную...');
@@ -247,7 +242,6 @@ class CasinoApp {
                     }
                 }
                 
-                // Настройка внешнего вида WebApp
                 Telegram.WebApp.setHeaderColor('#2c3e50');
                 Telegram.WebApp.setBackgroundColor('#1a1a2e');
                 
@@ -264,7 +258,6 @@ class CasinoApp {
     updateUserInfo(user) {
         console.log('🔄 Обновление информации пользователя:', user);
         
-        // Обновляем имя пользователя
         const username = user.username ? `@${user.username}` : (user.first_name || 'Игрок');
         const profileNameElement = document.getElementById('profileName');
         if (profileNameElement) {
@@ -272,17 +265,13 @@ class CasinoApp {
             console.log('✅ Имя пользователя установлено:', username);
         }
         
-        // Обновляем ID пользователя
         const profileIdElement = document.getElementById('profileId');
         if (profileIdElement) {
             profileIdElement.textContent = user.id;
             console.log('✅ ID пользователя установлен:', user.id);
         }
         
-        // Обновляем аватарку
         this.updateUserAvatar(user);
-        
-        // Сохраняем профиль
         this.saveUserProfile(user);
     }
 
@@ -296,11 +285,9 @@ class CasinoApp {
         console.log('🔄 Обновление аватарки пользователя:', user);
         
         if (user.photo_url) {
-            // Используем аватар из Telegram
             avatarContainer.innerHTML = `<img src="${user.photo_url}" alt="Avatar" class="profile-avatar-img">`;
             console.log('✅ Аватарка установлена из photo_url');
         } else {
-            // Создаем градиентную аватарку с инициалами
             const colors = [
                 ['#7f2b8f', '#c44569'], 
                 ['#2b8f8c', '#69c4a4'],
@@ -339,8 +326,7 @@ class CasinoApp {
     }
 
     setupFallbackData() {
-        // Создаем уникального пользователя для демо-режима
-        const randomId = Math.floor(100000000 + Math.random() * 900000000); // 9-значный ID
+        const randomId = Math.floor(100000000 + Math.random() * 900000000);
         this.userData = { 
             id: randomId, 
             first_name: 'Игрок', 
@@ -386,7 +372,6 @@ class CasinoApp {
         } catch (error) {
             console.error('❌ Ошибка отправки в Netlify:', error);
             
-            // Fallback: возвращаем успешный результат
             return {
                 success: true,
                 message: 'Данные сохранены локально',
@@ -421,7 +406,13 @@ class CasinoApp {
     updateFromServerData(serverData) {
         console.log('🔄 Обновление данных с сервера:', serverData);
         
-        if (serverData.balance !== undefined) this.userBalance = serverData.balance;
+        if (serverData.balance !== undefined) {
+            this.userBalance = serverData.balance;
+            // Если баланс был обновлен с сервера, значит пользователь уже не новый
+            if (serverData.balance !== 222) {
+                this.isNewUser = false;
+            }
+        }
         if (serverData.games_played !== undefined) this.gamesPlayed = serverData.games_played;
         if (serverData.total_won !== undefined) this.totalWon = serverData.total_won;
         if (serverData.biggest_win !== undefined) this.biggestWin = serverData.biggest_win;
@@ -429,13 +420,20 @@ class CasinoApp {
         
         this.updateUI();
         this.saveUserDataToLocalStorage();
-        console.log('✅ Данные обновлены');
+        console.log('✅ Данные обновлены, баланс:', this.userBalance);
     }
 
     async loadInitialData() {
         console.log('🔄 Загрузка начальных данных...');
         
+        // Сначала загружаем из localStorage
         this.loadUserDataFromLocalStorage();
+        
+        // Если пользователь новый, устанавливаем баланс 222
+        if (this.isNewUser) {
+            this.userBalance = 222;
+            console.log('🎁 Новый пользователь, установлен баланс 222 ⭐');
+        }
         
         if (window.Telegram && Telegram.WebApp) {
             try {
@@ -445,7 +443,8 @@ class CasinoApp {
                     bot_type: this.currentBot,
                     username: this.userData?.username,
                     first_name: this.userData?.first_name,
-                    domain: 'teal-lollipop-dfedaf'
+                    domain: 'teal-lollipop-dfedaf',
+                    is_new_user: this.isNewUser
                 };
                 
                 console.log('📤 Отправка запроса начальных данных:', data);
@@ -491,6 +490,7 @@ class CasinoApp {
         }
     }
 
+    // ИСПРАВЛЕННЫЙ МЕТОД ДЛЯ ПОПОЛНЕНИЯ - ТОЛЬКО ЗАПРОС
     processDeposit() {
         if (this.selectedDepositAmount > 0) {
             const data = {
@@ -506,13 +506,16 @@ class CasinoApp {
             console.log('💰 Отправка запроса на пополнение:', data);
             this.sendToBot(data);
             
-            this.showNotification('💰 Запрос отправлен!');
+            this.showNotification('💰 Запрос отправлен на модерацию!');
             this.closeDepositModal();
+            
+            // НЕ ПОПОЛНЯЕМ БАЛАНС АВТОМАТИЧЕСКИ - ЖДЕМ ПОДТВЕРЖДЕНИЯ ОТ АДМИНА
         } else {
             this.showNotification('❌ Выберите сумму для пополнения');
         }
     }
 
+    // ИСПРАВЛЕННЫЙ МЕТОД ДЛЯ ВЫВОДА ПРИЗА - ТОЛЬКО ЗАПРОС
     withdrawPrize() {
         if (this.currentPrize) {
             const data = {
@@ -527,13 +530,17 @@ class CasinoApp {
                 domain: 'teal-lollipop-dfedaf'
             };
             
+            console.log('🎁 Отправка запроса на вывод приза:', data);
             this.sendToBot(data);
             
-            this.showNotification('🎁 Запрос отправлен!');
+            this.showNotification('🎁 Запрос на вывод отправлен на модерацию!');
             this.closePrizeModal();
+            
+            // НЕ СПИСЫВАЕМ ПРИЗ АВТОМАТИЧЕСКИ - ЖДЕМ ПОДТВЕРЖДЕНИЯ ОТ АДМИНА
         }
     }
 
+    // МЕТОД ДЛЯ ПРОДАЖИ ПРИЗА (работает локально)
     sellPrize() {
         if (this.currentPrize) {
             this.userBalance += this.currentPrize.value;
@@ -551,12 +558,13 @@ class CasinoApp {
             
             if (savedData) {
                 const data = JSON.parse(savedData);
-                this.userBalance = data.balance || 666;
+                this.userBalance = data.balance || 222; // Новый баланс по умолчанию
                 this.gamesPlayed = data.gamesPlayed || 0;
                 this.totalWon = data.totalWon || 0;
                 this.biggestWin = data.biggestWin || 0;
                 this.winsCount = data.winsCount || 0;
                 this.gameHistory = data.gameHistory || [];
+                this.isNewUser = data.balance === 222; // Считаем новым если баланс 222
                 console.log('📁 Данные загружены из localStorage, баланс:', this.userBalance);
             }
         } catch (error) {
@@ -826,6 +834,7 @@ class CasinoApp {
             
             const oldBalance = this.userBalance;
             
+            // Списание ставки
             this.userBalance -= this.currentBet;
             this.gamesPlayed++;
             
@@ -836,16 +845,16 @@ class CasinoApp {
                 this.winsCount++;
                 this.totalWon += prize.value;
                 this.biggestWin = Math.max(this.biggestWin, prize.value);
-                this.userBalance += prize.value;
+                // НЕ ДОБАВЛЯЕМ ВЫИГРЫШ К БАЛАНСУ - ТОЛЬКО ПРИ ПРОДАЖЕ ПРИЗА
                 
                 console.log('🎉 Выигрыш:', prize.name, 'на', prize.value, 'звезд');
-                console.log('💰 Баланс после выигрыша:', this.userBalance);
+                console.log('💰 Баланс не изменен (приз нужно продать или вывести)');
                 
                 if (resultMessage) resultMessage.textContent = `🎉 Выигрыш: ${prize.name}!`;
                 this.addToHistory(true, prize, this.currentBet);
                 this.currentPrize = prize;
                 
-                // Отправляем результат игры
+                // ОТПРАВЛЯЕМ ТОЛЬКО ФАКТ ИГРЫ, НЕ РЕЗУЛЬТАТ КОМБИНАЦИИ
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
@@ -853,7 +862,7 @@ class CasinoApp {
                     win: true,
                     prize_name: prize.name,
                     prize_value: prize.value,
-                    combination: spinResult.join(','),
+                    // НЕ ОТПРАВЛЯЕМ КОМБИНАЦИЮ
                     bot_type: this.currentBot,
                     username: this.userData?.username,
                     first_name: this.userData?.first_name,
@@ -867,13 +876,13 @@ class CasinoApp {
                 if (resultMessage) resultMessage.textContent = '❌ Попробуйте еще раз!';
                 this.addToHistory(false, null, this.currentBet);
                 
-                // Отправляем результат проигрыша
+                // ОТПРАВЛЯЕМ ТОЛЬКО ФАКТ ПРОИГРЫША
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
                     bet_amount: this.currentBet,
                     win: false,
-                    combination: spinResult.join(','),
+                    // НЕ ОТПРАВЛЯЕМ КОМБИНАЦИЮ
                     bot_type: this.currentBot,
                     username: this.userData?.username,
                     first_name: this.userData?.first_name,
@@ -1068,7 +1077,6 @@ class CasinoApp {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    // Методы для работы с профилем
     updateProfileInfo() {
         const profileName = document.getElementById('profileName');
         const profileId = document.getElementById('profileId');
@@ -1081,7 +1089,6 @@ class CasinoApp {
         this.updateProfileStats();
     }
 
-    // Метод для открытия меню (для мобильных устройств)
     toggleMenu() {
         const menu = document.querySelector('.nav-menu');
         if (menu) {
@@ -1166,7 +1173,6 @@ function handleSwipe() {
     
     if (Math.abs(diff) > swipeThreshold) {
         if (diff > 0) {
-            // Свайп влево
             const sections = ['history', 'casino', 'profile'];
             const currentSection = document.querySelector('.section.active').id.replace('-section', '');
             const currentIndex = sections.indexOf(currentSection);
@@ -1174,7 +1180,6 @@ function handleSwipe() {
                 showSection(sections[currentIndex + 1]);
             }
         } else {
-            // Свайп вправо
             const sections = ['history', 'casino', 'profile'];
             const currentSection = document.querySelector('.section.active').id.replace('-section', '');
             const currentIndex = sections.indexOf(currentSection);
@@ -1185,14 +1190,12 @@ function handleSwipe() {
     }
 }
 
-// Предотвращение масштабирования на iOS
 document.addEventListener('touchmove', function(e) {
     if (e.scale !== 1) {
         e.preventDefault();
     }
 }, { passive: false });
 
-// Обработка изменения ориентации экрана
 window.addEventListener('orientationchange', function() {
     setTimeout(() => {
         window.scrollTo(0, 0);
