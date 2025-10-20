@@ -111,6 +111,159 @@ exports.handler = async (event, context) => {
 
             // Process actions
             switch (action) {
+
+                // Добавьте этот case в существующий switch(action)
+case 'delete_user':
+  if (!data.user_id) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ success: false, error: 'User ID required' })
+    };
+  }
+
+  // Проверяем права администратора (замените на ваш ADMIN_ID)
+  if (data.admin_id !== 1376689155 && data.user_id_to_delete !== data.admin_id) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ success: false, error: 'Admin access required' })
+    };
+  }
+
+  try {
+    // Загружаем текущую базу данных
+    const db = await loadDatabase();
+    
+    const userId = data.user_id.toString();
+    
+    if (!db.users[userId]) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ success: false, error: 'User not found' })
+      };
+    }
+
+    // Сохраняем информацию об удаленном пользователе (опционально)
+    if (!db.deleted_users) {
+      db.deleted_users = {};
+    }
+    
+    db.deleted_users[userId] = {
+      ...db.users[userId],
+      deleted_at: new Date().toISOString(),
+      deleted_by: data.admin_id
+    };
+
+    // Удаляем пользователя
+    delete db.users[userId];
+    
+    // Также удаляем историю игр пользователя
+    if (db.game_history) {
+      db.game_history = db.game_history.filter(game => game.user_id !== userId);
+    }
+
+    // Сохраняем обновленную базу
+    await saveDatabase(db);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ 
+        success: true, 
+        message: `User ${userId} deleted successfully`,
+        deleted_user: {
+          user_id: userId,
+          username: db.deleted_users[userId]?.username,
+          deleted_at: db.deleted_users[userId]?.deleted_at
+        }
+      })
+    };
+    
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
+
+case 'clear_all_users':
+  // Очистка всех пользователей (ТОЛЬКО ДЛЯ АДМИНА)
+  if (data.admin_id !== 1376689155) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ success: false, error: 'Admin access required' })
+    };
+  }
+
+  if (!data.confirm) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ 
+        success: false, 
+        error: 'Confirmation required. Use confirm: true' 
+      })
+    };
+  }
+
+  try {
+    const db = await loadDatabase();
+    const userCount = Object.keys(db.users || {}).length;
+    
+    // Сохраняем backup удаленных пользователей
+    if (!db.backups) db.backups = {};
+    db.backups[`clear_${Date.now()}`] = {
+      users: db.users,
+      cleared_at: new Date().toISOString(),
+      cleared_by: data.admin_id,
+      user_count: userCount
+    };
+
+    // Очищаем пользователей
+    db.users = {};
+    db.game_history = [];
+
+    await saveDatabase(db);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ 
+        success: true, 
+        message: `All users cleared successfully`,
+        cleared_count: userCount,
+        cleared_at: new Date().toISOString()
+      })
+    };
+    
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
+  
+  case 'list_users':
+  if (data.admin_id !== 1376689155) {
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ success: false, error: 'Admin access required' })
+    };
+  }
+
+  try {
+    const db = await loadDatabase();
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ 
+        success: true, 
+        users: db.users || {},
+        user_count: Object.keys(db.users || {}).length
+      })
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
+
                 case 'get_initial_data':
                     result.user_data = user;
                     result.game_history = [];
