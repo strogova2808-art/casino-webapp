@@ -15,8 +15,7 @@ class CasinoApp {
         this.stickersLoaded = false;
         this.quickSpinMode = false;
         this.currentBot = 'main';
-        this.netlifyAvailable = false;
-
+        
         // Правильные призы за 3 одинаковых стикера
         this.prizesConfig = {
             3: {
@@ -92,10 +91,10 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
-        // Netlify Functions URL
         this.netlifyUrl = 'https://whimsical-eclair-8618b5.netlify.app/.netlify/functions/casino';
         
         console.log('🎰 Инициализация CasinoApp...');
+        console.log('🌐 Netlify URL:', this.netlifyUrl);
         
         this.init();
     }
@@ -187,7 +186,7 @@ class CasinoApp {
     }
 
     async sendToNetlify(data) {
-        console.log(`📡 Отправка данных:`, data);
+        console.log(`📡 Отправка данных в Netlify:`, data);
         
         try {
             const response = await fetch(this.netlifyUrl, {
@@ -196,7 +195,14 @@ class CasinoApp {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    ...data,
+                    user_id: this.userId,
+                    bot_type: this.currentBot,
+                    timestamp: Date.now(),
+                    username: this.userData?.username,
+                    first_name: this.userData?.first_name
+                })
             });
             
             console.log('📡 Статус ответа:', response.status);
@@ -211,11 +217,12 @@ class CasinoApp {
             return result;
             
         } catch (error) {
-            console.error('❌ Ошибка отправки:', error);
+            console.error('❌ Ошибка отправки в Netlify:', error);
             
-            // Fallback - возвращаем успех даже при ошибке
+            // Fallback: возвращаем успешный результат
             return {
                 success: true,
+                message: 'Данные сохранены локально',
                 user_data: {
                     user_id: this.userId,
                     balance: this.userBalance,
@@ -229,16 +236,19 @@ class CasinoApp {
     }
 
     async sendToBot(data) {
-        console.log(`🤖 Отправка действия: ${data.action}`);
+        console.log(`📡 Отправка данных:`, data);
         
         const result = await this.sendToNetlify(data);
-        
-        // Обновляем данные если они пришли
-        if (result.success && result.user_data) {
-            this.updateFromServerData(result.user_data);
+            
+        if (result.success) {
+            if (result.user_data) {
+                this.updateFromServerData(result.user_data);
+            }
+            return true;
+        } else {
+            this.showNotification('❌ ' + (result.error || 'Ошибка сервера'));
+            return false;
         }
-        
-        return result.success;
     }
 
     updateFromServerData(serverData) {
@@ -268,12 +278,16 @@ class CasinoApp {
                     this.userData = user;
                     this.userId = user.id;
                     this.updateUserInfo(user);
-                    this.saveUserProfile(user);
                     console.log('👤 Пользователь Telegram:', user);
                 } else {
                     console.log('⚠️ Данные пользователя не получены');
                     this.setupFallbackData();
                 }
+                
+                Telegram.WebApp.onEvent('webAppDataReceived', (event) => {
+                    console.log('📨 Получены данные от бота:', event);
+                    this.handleBotResponse(event);
+                });
                 
             } catch (error) {
                 console.error('❌ Ошибка инициализации Telegram WebApp:', error);
@@ -302,58 +316,59 @@ class CasinoApp {
 
     updateUserAvatar(user) {
         const avatarContainer = document.getElementById('profileAvatar');
-        if (!avatarContainer) return;
-        
-        if (user.photo_url) {
-            avatarContainer.innerHTML = `
-                <img src="${user.photo_url}" alt="Avatar" class="profile-avatar-img">
-            `;
-        } else {
-            const colors = [
-                ['#7f2b8f', '#c44569'], 
-                ['#2b8f8c', '#69c4a4'],
-                ['#8f2b2b', '#c46945'],
-                ['#2b8f4a', '#45c469']
-            ];
-            const colorIndex = (user.id || 0) % colors.length;
-            const userInitial = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
-            
-            avatarContainer.innerHTML = `
-                <div class="gradient-avatar-large" style="background: linear-gradient(135deg, ${colors[colorIndex][0]}, ${colors[colorIndex][1]});">
-                    ${userInitial}
-                </div>
-            `;
+        if (avatarContainer) {
+            if (user.photo_url) {
+                avatarContainer.innerHTML = `<img src="${user.photo_url}" alt="Avatar" class="profile-avatar-img">`;
+            } else {
+                const colors = [['#7f2b8f', '#c44569'], ['#2b8f8c', '#69c4a4']];
+                const colorIndex = (user.id || 0) % colors.length;
+                const userInitial = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
+                avatarContainer.innerHTML = `
+                    <div class="gradient-avatar-large" style="background: linear-gradient(135deg, ${colors[colorIndex][0]}, ${colors[colorIndex][1]});">
+                        ${userInitial}
+                    </div>
+                `;
+            }
         }
     }
 
-    saveUserProfile(user) {
+    handleBotResponse(event) {
         try {
-            const profileKey = `casino_profile_${user.id}`;
-            const profileData = {
-                user_id: user.id,
-                username: user.username,
-                first_name: user.first_name,
-                last_name: user.last_name || '',
-                photo_url: user.photo_url || '',
-                language_code: user.language_code || 'ru',
-                last_seen: new Date().toISOString()
-            };
-            localStorage.setItem(profileKey, JSON.stringify(profileData));
-            console.log('💾 Профиль сохранен:', profileData);
+            console.log('📨 Обработка данных от бота:', event);
+            
+            if (event) {
+                let data;
+                if (typeof event === 'string') {
+                    data = JSON.parse(event);
+                } else if (event.data) {
+                    data = JSON.parse(event.data);
+                } else {
+                    data = event;
+                }
+                
+                console.log('📊 Данные от бота:', data);
+                
+                if (data.balance !== undefined) {
+                    this.userBalance = data.balance;
+                    this.gamesPlayed = data.games_played || this.gamesPlayed;
+                    this.totalWon = data.total_won || this.totalWon;
+                    this.biggestWin = data.biggest_win || this.biggestWin;
+                    this.winsCount = data.wins_count || this.winsCount;
+                    
+                    this.updateUI();
+                    this.saveUserDataToLocalStorage();
+                    
+                    console.log('✅ Данные обновлены от бота, баланс:', this.userBalance);
+                    this.showNotification('✅ Данные синхронизированы!');
+                }
+                
+                if (data.message) {
+                    this.showNotification(data.message);
+                }
+            }
         } catch (error) {
-            console.error('❌ Ошибка сохранения профиля:', error);
+            console.error('❌ Ошибка обработки данных от бота:', error);
         }
-    }
-
-    setupFallbackData() {
-        this.userData = { 
-            id: Date.now(), 
-            first_name: 'Игрок', 
-            username: 'player' 
-        };
-        this.userId = this.userData.id;
-        this.updateUserInfo(this.userData);
-        console.log('👤 Используются тестовые данные');
     }
 
     async loadInitialData() {
@@ -424,14 +439,13 @@ class CasinoApp {
                 first_name: this.userData?.first_name
             };
             
-            console.log(`💰 Отправка запроса на пополнение: ${this.selectedDepositAmount} ⭐`);
-            
+            console.log('💰 Отправка запроса на пополнение:', data);
             this.sendToBot(data);
             
             this.showNotification('💰 Запрос отправлен!');
             this.closeDepositModal();
         } else {
-            this.showNotification('❌ Выберите сумму');
+            this.showNotification('❌ Выберите сумму для пополнения');
         }
     }
 
@@ -564,6 +578,17 @@ class CasinoApp {
         if (prizeModal) prizeModal.style.display = 'block';
         
         this.createConfetti();
+    }
+
+    setupFallbackData() {
+        this.userData = { 
+            id: Date.now(), 
+            first_name: 'Игрок', 
+            username: 'player' 
+        };
+        this.userId = this.userData.id;
+        this.updateUserInfo(this.userData);
+        console.log('👤 Используются тестовые данные');
     }
 
     setupEventListeners() {
@@ -749,7 +774,8 @@ class CasinoApp {
             this.userBalance -= this.currentBet;
             this.gamesPlayed++;
             
-            console.log(`💰 Баланс после списания: ${this.userBalance}`);
+            console.log('💰 Списано ставки:', this.currentBet);
+            console.log('💰 Баланс после списания:', this.userBalance);
 
             if (prize) {
                 this.winsCount++;
@@ -757,13 +783,14 @@ class CasinoApp {
                 this.biggestWin = Math.max(this.biggestWin, prize.value);
                 this.userBalance += prize.value;
                 
-                console.log(`🎉 Выигрыш: ${prize.value} ⭐`);
+                console.log('🎉 Выигрыш:', prize.name, 'на', prize.value, 'звезд');
+                console.log('💰 Баланс после выигрыша:', this.userBalance);
                 
-                if (resultMessage) resultMessage.textContent = `🎉 ${prize.name}!`;
+                if (resultMessage) resultMessage.textContent = `🎉 Выигрыш: ${prize.name}!`;
                 this.addToHistory(true, prize, this.currentBet);
                 this.currentPrize = prize;
                 
-                // Отправляем результат игры - ВЫИГРЫШ
+                // Отправляем результат игры
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
@@ -776,16 +803,15 @@ class CasinoApp {
                     username: this.userData?.username,
                     first_name: this.userData?.first_name
                 };
-                await this.sendToBot(gameData);
+                this.sendToBot(gameData);
                 
                 setTimeout(() => this.showPrizeModal(prize), 1000);
             } else {
                 console.log('❌ Проигрыш');
-                
                 if (resultMessage) resultMessage.textContent = '❌ Попробуйте еще раз!';
                 this.addToHistory(false, null, this.currentBet);
                 
-                // Отправляем результат игры - ПРОИГРЫШ
+                // Отправляем результат проигрыша
                 const gameData = {
                     action: 'game_result',
                     user_id: this.userId,
@@ -796,13 +822,15 @@ class CasinoApp {
                     username: this.userData?.username,
                     first_name: this.userData?.first_name
                 };
-                await this.sendToBot(gameData);
+                this.sendToBot(gameData);
             }
             
-            console.log(`💰 Итоговый баланс: ${this.userBalance}`);
+            console.log(`💰 Баланс изменился: ${oldBalance} -> ${this.userBalance}`);
             
             this.updateUI();
             await this.saveUserDataToDatabase();
+            
+            console.log('✅ Игра завершена, данные сохранены');
             
         } catch (error) {
             console.error('❌ Ошибка в процессе игры:', error);
