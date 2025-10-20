@@ -112,158 +112,6 @@ exports.handler = async (event, context) => {
             // Process actions
             switch (action) {
 
-                // Добавьте этот case в существующий switch(action)
-case 'delete_user':
-  if (!data.user_id) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ success: false, error: 'User ID required' })
-    };
-  }
-
-  // Проверяем права администратора (замените на ваш ADMIN_ID)
-  if (data.admin_id !== 1376689155 && data.user_id_to_delete !== data.admin_id) {
-    return {
-      statusCode: 403,
-      body: JSON.stringify({ success: false, error: 'Admin access required' })
-    };
-  }
-
-  try {
-    // Загружаем текущую базу данных
-    const db = await loadDatabase();
-    
-    const userId = data.user_id.toString();
-    
-    if (!db.users[userId]) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ success: false, error: 'User not found' })
-      };
-    }
-
-    // Сохраняем информацию об удаленном пользователе (опционально)
-    if (!db.deleted_users) {
-      db.deleted_users = {};
-    }
-    
-    db.deleted_users[userId] = {
-      ...db.users[userId],
-      deleted_at: new Date().toISOString(),
-      deleted_by: data.admin_id
-    };
-
-    // Удаляем пользователя
-    delete db.users[userId];
-    
-    // Также удаляем историю игр пользователя
-    if (db.game_history) {
-      db.game_history = db.game_history.filter(game => game.user_id !== userId);
-    }
-
-    // Сохраняем обновленную базу
-    await saveDatabase(db);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ 
-        success: true, 
-        message: `User ${userId} deleted successfully`,
-        deleted_user: {
-          user_id: userId,
-          username: db.deleted_users[userId]?.username,
-          deleted_at: db.deleted_users[userId]?.deleted_at
-        }
-      })
-    };
-    
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ success: false, error: error.message })
-    };
-  }
-
-case 'clear_all_users':
-  // Очистка всех пользователей (ТОЛЬКО ДЛЯ АДМИНА)
-  if (data.admin_id !== 1376689155) {
-    return {
-      statusCode: 403,
-      body: JSON.stringify({ success: false, error: 'Admin access required' })
-    };
-  }
-
-  if (!data.confirm) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ 
-        success: false, 
-        error: 'Confirmation required. Use confirm: true' 
-      })
-    };
-  }
-
-  try {
-    const db = await loadDatabase();
-    const userCount = Object.keys(db.users || {}).length;
-    
-    // Сохраняем backup удаленных пользователей
-    if (!db.backups) db.backups = {};
-    db.backups[`clear_${Date.now()}`] = {
-      users: db.users,
-      cleared_at: new Date().toISOString(),
-      cleared_by: data.admin_id,
-      user_count: userCount
-    };
-
-    // Очищаем пользователей
-    db.users = {};
-    db.game_history = [];
-
-    await saveDatabase(db);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ 
-        success: true, 
-        message: `All users cleared successfully`,
-        cleared_count: userCount,
-        cleared_at: new Date().toISOString()
-      })
-    };
-    
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ success: false, error: error.message })
-    };
-  }
-  
-  case 'list_users':
-  if (data.admin_id !== 1376689155) {
-    return {
-      statusCode: 403,
-      body: JSON.stringify({ success: false, error: 'Admin access required' })
-    };
-  }
-
-  try {
-    const db = await loadDatabase();
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ 
-        success: true, 
-        users: db.users || {},
-        user_count: Object.keys(db.users || {}).length
-      })
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ success: false, error: error.message })
-    };
-  }
-
                 case 'get_initial_data':
                     result.user_data = user;
                     result.game_history = [];
@@ -306,7 +154,6 @@ case 'clear_all_users':
                             `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
                             `🏆 <b>Приз:</b> ${data.prize_name}\n` +
                             `💎 <b>Сумма:</b> ${data.prize_value} ⭐\n` +
-                            `🎰 <b>Комбинация:</b> ${data.combination}\n` +
                             `💰 <b>Ставка:</b> ${data.bet_amount} ⭐\n` +
                             `🤖 <b>Бот:</b> ${botType}`,
                             botType
@@ -322,7 +169,6 @@ case 'clear_all_users':
                             `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
                             `💸 <b>Ставка:</b> ${data.bet_amount} ⭐\n` +
                             `❌ <b>Результат:</b> Проигрыш\n` +
-                            `🎰 <b>Комбинация:</b> ${data.combination}\n` +
                             `🤖 <b>Бот:</b> ${botType}`,
                             botType
                         );
@@ -367,6 +213,156 @@ case 'clear_all_users':
                         botType
                     );
                     
+                    break;
+
+                // НОВЫЕ ОБРАБОТЧИКИ ДЛЯ УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ
+                case 'list_users':
+                    console.log('📋 Запрос списка пользователей от админа:', data.admin_id);
+                    
+                    // Проверяем права администратора
+                    if (data.admin_id !== ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    try {
+                        const usersArray = Array.from(users.entries()).reduce((acc, [id, userData]) => {
+                            acc[id] = userData;
+                            return acc;
+                        }, {});
+                        
+                        console.log(`📊 Найдено пользователей: ${Object.keys(usersArray).length}`);
+                        
+                        result.users = usersArray;
+                        result.user_count = users.size;
+                        result.total_balance = Array.from(users.values()).reduce((sum, user) => sum + (user.balance || 0), 0);
+                        result.timestamp = new Date().toISOString();
+                        
+                    } catch (error) {
+                        console.error('❌ Ошибка получения списка пользователей:', error);
+                        result.success = false;
+                        result.error = error.message;
+                    }
+                    break;
+
+                case 'delete_user':
+                    console.log('🗑️ Запрос на удаление пользователя:', data.user_id);
+                    
+                    // Проверяем права администратора
+                    if (data.admin_id !== ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    try {
+                        const userIdToDelete = data.user_id.toString();
+                        
+                        if (!users.has(userIdToDelete)) {
+                            result.success = false;
+                            result.error = 'User not found';
+                        } else {
+                            const deletedUser = users.get(userIdToDelete);
+                            users.delete(userIdToDelete);
+                            
+                            result.success = true;
+                            result.message = `User ${userIdToDelete} deleted successfully`;
+                            result.deleted_user = {
+                                user_id: userIdToDelete,
+                                username: deletedUser.username,
+                                first_name: deletedUser.first_name,
+                                deleted_at: new Date().toISOString()
+                            };
+                            
+                            console.log(`✅ Пользователь ${userIdToDelete} удален`);
+                            
+                            // Уведомление админу об удалении
+                            await notifyAdmin(
+                                `🗑️ <b>ПОЛЬЗОВАТЕЛЬ УДАЛЕН</b>\n\n` +
+                                `👤 <b>Пользователь:</b> ${deletedUser.first_name}\n` +
+                                `🆔 <b>ID:</b> <code>${userIdToDelete}</code>\n` +
+                                `📛 <b>Username:</b> @${deletedUser.username || 'нет'}\n` +
+                                `💎 <b>Баланс был:</b> ${deletedUser.balance} ⭐\n` +
+                                `🕐 <b>Удален:</b> ${new Date().toLocaleString()}`,
+                                botType
+                            );
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Ошибка удаления пользователя:', error);
+                        result.success = false;
+                        result.error = error.message;
+                    }
+                    break;
+
+                case 'clear_all_users':
+                    console.log('⚠️ Запрос на очистку всех пользователей');
+                    
+                    // Проверяем права администратора
+                    if (data.admin_id !== ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    if (!data.confirm) {
+                        result.success = false;
+                        result.error = 'Confirmation required. Use confirm: true';
+                    } else {
+                        try {
+                            const userCount = users.size;
+                            const totalBalance = Array.from(users.values()).reduce((sum, user) => sum + (user.balance || 0), 0);
+                            
+                            // Очищаем всех пользователей
+                            users.clear();
+                            
+                            result.success = true;
+                            result.message = `All users cleared successfully`;
+                            result.cleared_count = userCount;
+                            result.total_balance_cleared = totalBalance;
+                            result.cleared_at = new Date().toISOString();
+                            
+                            console.log(`✅ Все пользователи удалены (${userCount} пользователей)`);
+                            
+                            // Уведомление админу об очистке
+                            await notifyAdmin(
+                                `⚠️ <b>БАЗА ДАННЫХ ОЧИЩЕНА</b>\n\n` +
+                                `🗑️ <b>Удалено пользователей:</b> ${userCount}\n` +
+                                `💰 <b>Общий баланс:</b> ${totalBalance} ⭐\n` +
+                                `🕐 <b>Время очистки:</b> ${new Date().toLocaleString()}\n` +
+                                `🔧 <b>Выполнено через:</b> ${botType}`,
+                                botType
+                            );
+                            
+                        } catch (error) {
+                            console.error('❌ Ошибка очистки пользователей:', error);
+                            result.success = false;
+                            result.error = error.message;
+                        }
+                    }
+                    break;
+
+                case 'test_connection':
+                    result.message = 'Connection test successful';
+                    result.server = 'Netlify Functions';
+                    result.timestamp = new Date().toISOString();
+                    result.total_users = users.size;
                     break;
 
                 default:
