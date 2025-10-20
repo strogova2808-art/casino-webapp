@@ -50,9 +50,9 @@ class CasinoApp {
         // Веса для разных ставок
         this.weights = {
             3: {
-                'bear': 100,
-                'rose': 30,
-                'ring': 20,
+                'bear': 30,
+                'rose': 20,
+                'ring': 10,
                 'rocket': 20
             },
             9: {
@@ -1201,4 +1201,5 @@ window.addEventListener('orientationchange', function() {
         window.scrollTo(0, 0);
     }, 100);
 });
+
 
