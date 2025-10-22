@@ -178,7 +178,7 @@ class CasinoApp {
         await this.preloadStickers();
         this.setupEventListeners();
         
-        // Проверяем авторизацию
+        // Проверяем авторизацию - НЕТ автоматической регистрации
         this.checkAuth();
         
         this.updateUI();
@@ -190,7 +190,7 @@ class CasinoApp {
         console.log('✅ CasinoApp инициализирован');
     }
 
-    // ТЕЛЕГРАМ АВТОРИЗАЦИЯ
+    // ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP
     async initTelegramWebApp() {
         if (window.Telegram && Telegram.WebApp) {
             console.log('📱 Инициализация Telegram WebApp...');
@@ -199,14 +199,8 @@ class CasinoApp {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 
-                const user = Telegram.WebApp.initDataUnsafe?.user;
-                
-                if (user) {
-                    console.log('✅ Пользователь получен из Telegram:', user);
-                    await this.handleTelegramUser(user);
-                } else {
-                    console.log('⚠️ Пользователь не авторизован в Telegram');
-                }
+                // НЕ регистрируем автоматически!
+                // Пользователь сам решит когда авторизоваться
                 
                 Telegram.WebApp.setHeaderColor('#2c3e50');
                 Telegram.WebApp.setBackgroundColor('#1a1a2e');
@@ -216,6 +210,30 @@ class CasinoApp {
             }
         } else {
             console.log('⚠️ Telegram WebApp не обнаружен');
+        }
+    }
+
+    // РУЧНАЯ АВТОРИЗАЦИЯ ПОЛЬЗОВАТЕЛЕМ
+    async loginWithTelegram() {
+        console.log('🔐 Пользователь нажал кнопку авторизации');
+        
+        if (window.Telegram && Telegram.WebApp) {
+            try {
+                const user = Telegram.WebApp.initDataUnsafe?.user;
+                
+                if (user) {
+                    console.log('✅ Пользователь найден в WebApp:', user);
+                    await this.handleTelegramUser(user);
+                } else {
+                    console.log('❌ Пользователь не авторизован в WebApp');
+                    this.showNotification('❌ Не удалось получить данные пользователя. Попробуйте еще раз.');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка авторизации:', error);
+                this.showNotification('❌ Ошибка авторизации');
+            }
+        } else {
+            this.showNotification('⚠️ Откройте приложение через Telegram');
         }
     }
 
@@ -246,11 +264,12 @@ class CasinoApp {
             this.userId = userData.id;
             this.userBalance = userData.balance;
 
-            await this.registerUserInDatabase(userData);
+            // Отправляем данные о регистрации в бота
+            await this.sendRegistrationToBot(userData);
 
             this.showNotification(`✅ Добро пожаловать, ${userData.first_name}!`);
+            this.showCasinoInterface();
             this.updateUserDisplay();
-            this.toggleProfilePanel(false);
             
         } catch (error) {
             console.error('Ошибка обработки пользователя:', error);
@@ -258,27 +277,30 @@ class CasinoApp {
         }
     }
 
-    async registerUserInDatabase(userData) {
+    async sendRegistrationToBot(userData) {
         try {
-            const data = {
-                action: 'register_telegram_user',
-                user_id: userData.id,
-                username: userData.username,
-                first_name: userData.first_name,
-                last_name: userData.last_name,
-                language_code: userData.language_code,
-                is_premium: userData.is_premium,
-                photo_url: userData.photo_url,
-                balance: userData.balance,
-                registered_at: userData.registered_at,
-                bot_type: 'main'
-            };
+            // Отправляем данные в бота через WebApp
+            if (window.Telegram && Telegram.WebApp) {
+                const data = {
+                    action: 'register_telegram_user',
+                    user_id: userData.id,
+                    username: userData.username,
+                    first_name: userData.first_name,
+                    last_name: userData.last_name,
+                    language_code: userData.language_code,
+                    is_premium: userData.is_premium,
+                    photo_url: userData.photo_url,
+                    balance: userData.balance,
+                    registered_at: userData.registered_at,
+                    bot_type: 'main'
+                };
 
-            await this.sendToNetlify(data);
-            console.log('✅ Пользователь зарегистрирован в базе');
-            
+                // Отправляем данные в бота
+                Telegram.WebApp.sendData(JSON.stringify(data));
+                console.log('📨 Данные регистрации отправлены в бота');
+            }
         } catch (error) {
-            console.error('❌ Ошибка регистрации в базе:', error);
+            console.error('❌ Ошибка отправки данных в бота:', error);
         }
     }
 
@@ -298,24 +320,33 @@ class CasinoApp {
                 this.winsCount = userData.wins_count || 0;
                 this.gameHistory = userData.gameHistory || [];
                 
+                this.showCasinoInterface();
                 this.updateUserDisplay();
                 console.log('✅ Пользователь авторизован');
             } catch (e) {
                 console.error('❌ Ошибка загрузки пользователя:', e);
-                this.showAuthSection();
+                this.showWelcomeInterface();
             }
         } else {
-            this.showAuthSection();
+            this.showWelcomeInterface();
         }
     }
 
-    saveUserToLocalStorage(userData) {
-        try {
-            localStorage.setItem('casino_user', JSON.stringify(userData));
-            console.log('💾 Пользователь сохранен локально');
-        } catch (error) {
-            console.error('❌ Ошибка сохранения пользователя:', error);
-        }
+    // ПОКАЗ ИНТЕРФЕЙСОВ
+    showWelcomeInterface() {
+        document.getElementById('welcome-section').classList.add('active');
+        document.getElementById('casino-section').classList.remove('active');
+        document.getElementById('authSection').style.display = 'block';
+        document.getElementById('userProfile').style.display = 'none';
+        this.isLoggedIn = false;
+    }
+
+    showCasinoInterface() {
+        document.getElementById('welcome-section').classList.remove('active');
+        document.getElementById('casino-section').classList.add('active');
+        document.getElementById('authSection').style.display = 'none';
+        document.getElementById('userProfile').style.display = 'block';
+        this.isLoggedIn = true;
     }
 
     // ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
@@ -355,6 +386,28 @@ class CasinoApp {
         }
     }
 
+    // ВЫХОД
+    logout() {
+        this.userData = null;
+        this.isLoggedIn = false;
+        this.userId = null;
+        this.userBalance = 0;
+        localStorage.removeItem('casino_user');
+        this.showNotification('👋 До свидания!');
+        this.toggleProfilePanel(false);
+        this.showWelcomeInterface();
+    }
+
+    // ОСТАЛЬНЫЕ ФУНКЦИИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ
+    saveUserToLocalStorage(userData) {
+        try {
+            localStorage.setItem('casino_user', JSON.stringify(userData));
+            console.log('💾 Пользователь сохранен локально');
+        } catch (error) {
+            console.error('❌ Ошибка сохранения пользователя:', error);
+        }
+    }
+
     updateProfileStats() {
         const elements = {
             games: document.getElementById('panelGames'),
@@ -383,18 +436,6 @@ class CasinoApp {
         } else {
             panel.classList.remove('active');
         }
-    }
-
-    // ВЫХОД
-    logout() {
-        this.userData = null;
-        this.isLoggedIn = false;
-        this.userId = null;
-        this.userBalance = 0;
-        localStorage.removeItem('casino_user');
-        this.showNotification('👋 До свидания!');
-        this.toggleProfilePanel(false);
-        this.updateUserDisplay();
     }
 
     // NFT МАРКЕТПЛЕЙС
@@ -495,166 +536,6 @@ class CasinoApp {
             console.error('❌ Ошибка покупки NFT:', error);
             this.showNotification('❌ Ошибка при покупке');
         }
-    }
-
-    // ОСТАЛЬНЫЕ ФУНКЦИИ (аналогично предыдущей версии)
-    setupOnlineListeners() {
-        window.addEventListener('online', () => {
-            console.log('🌐 Приложение онлайн');
-            this.isOnline = true;
-            this.showNotification('✅ Соединение восстановлено');
-            this.updateOnlineStatus(true);
-            this.syncWithServer();
-        });
-
-        window.addEventListener('offline', () => {
-            console.log('❌ Приложение офлайн');
-            this.isOnline = false;
-            this.showNotification('⚠️ Режим офлайн - данные сохранятся локально');
-            this.updateOnlineStatus(false);
-        });
-    }
-
-    updateOnlineStatus(online) {
-        const statusElement = document.getElementById('onlineStatus');
-        const statusText = document.getElementById('statusText');
-        if (statusElement) {
-            statusElement.className = online ? 'status-dot' : 'status-dot offline';
-        }
-        if (statusText) {
-            statusText.textContent = online ? 'онлайн' : 'офлайн';
-        }
-    }
-
-    checkOnlineStatus() {
-        this.isOnline = navigator.onLine;
-        console.log('🌐 Статус соединения:', this.isOnline ? 'онлайн' : 'офлайн');
-        this.updateOnlineStatus(this.isOnline);
-    }
-
-    detectCurrentBot() {
-        console.log('🔍 Определение текущего бота...');
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const startParam = urlParams.get('startapp') || urlParams.get('start');
-        
-        if (startParam === 'consoltotka_bot' || startParam?.includes('consoltotka')) {
-            this.currentBot = 'proxy';
-            console.log('🔧 Определен КОНСОЛЬ-БОТ @consoltotka_bot');
-            this.showProxyBanner();
-        } else {
-            this.currentBot = 'main';
-            console.log('🎰 Определен ОСНОВНОЙ БОТ @sosazvezd_bot');
-        }
-    }
-
-    showProxyBanner() {
-        // ... (код баннера как в предыдущей версии)
-    }
-
-    async sendToNetlify(data) {
-        if (!this.isOnline) {
-            console.log('📡 Офлайн режим - запрос не отправлен');
-            return {
-                success: true,
-                message: 'Офлайн режим - данные сохранены локально',
-                offline: true
-            };
-        }
-
-        console.log(`📡 Отправка данных в Netlify:`, data);
-        
-        try {
-            const response = await fetch(this.netlifyUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    ...data,
-                    user_id: this.userId,
-                    bot_type: this.currentBot,
-                    timestamp: Date.now(),
-                    username: this.userData?.username,
-                    first_name: this.userData?.first_name,
-                    domain: 'teal-lollipop-dfedaf'
-                })
-            });
-            
-            console.log('📡 Статус ответа:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            console.log('✅ Ответ от Netlify:', result);
-            
-            return result;
-            
-        } catch (error) {
-            console.error('❌ Ошибка отправки в Netlify:', error);
-            
-            return {
-                success: true,
-                message: 'Офлайн режим - данные сохранены локально',
-                offline: true
-            };
-        }
-    }
-
-    async sendToBot(data) {
-        console.log(`📡 Отправка данных:`, data);
-        
-        const result = await this.sendToNetlify(data);
-            
-        if (result.success) {
-            if (result.user_data && !result.offline) {
-                this.updateFromServerData(result.user_data);
-            }
-            return true;
-        } else {
-            this.showNotification('❌ ' + (result.error || 'Ошибка сервера'));
-            return false;
-        }
-    }
-
-    updateFromServerData(serverData) {
-        console.log('🔄 Обновление данных с сервера:', serverData);
-        
-        if (serverData.balance !== undefined && this.userData) {
-            this.userBalance = serverData.balance;
-            this.userData.balance = serverData.balance;
-            this.saveUserToLocalStorage(this.userData);
-        }
-        
-        this.updateUserDisplay();
-        console.log('✅ Данные обновлены, баланс:', this.userBalance);
-    }
-
-    async preloadStickers() {
-        console.log('🔄 Предзагрузка GIF стикеров...');
-        const allStickers = Object.keys(this.stickerPaths);
-        
-        const preloadPromises = allStickers.map(sticker => {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.src = this.stickerPaths[sticker];
-                img.onload = () => {
-                    console.log(`✅ Стикер ${sticker} загружен`);
-                    resolve();
-                };
-                img.onerror = () => {
-                    console.warn(`❌ Ошибка загрузки стикера ${sticker}`);
-                    resolve();
-                };
-            });
-        });
-
-        await Promise.all(preloadPromises);
-        this.stickersLoaded = true;
-        console.log('✅ Все GIF стикеры загружены');
     }
 
     // КАЗИНО ФУНКЦИИ
@@ -763,205 +644,199 @@ class CasinoApp {
         }
     }
 
-    // ОСТАЛЬНЫЕ МЕТОДЫ КАЗИНО (animateReels, checkWin, updateReelSticker и т.д.)
-    // ... (остальной код казино из предыдущей версии)
+    // ОСТАЛЬНЫЕ МЕТОДЫ (animateReels, checkWin, updateReelSticker и т.д.)
+    // ... остальной код без изменений
 
-    showSection(section) {
-        document.querySelectorAll('.section').forEach(sec => {
-            sec.classList.remove('active');
-        });
-        
-        const sectionElement = document.getElementById(section + '-section');
-        if (sectionElement) {
-            sectionElement.classList.add('active');
-        }
-        
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        const navItems = document.querySelectorAll('.nav-item');
-        const sectionIndex = ['history', 'casino', 'market'].indexOf(section);
-        if (sectionIndex !== -1 && navItems[sectionIndex]) {
-            navItems[sectionIndex].classList.add('active');
-        }
-    }
-
-    // МОДАЛЬНЫЕ ОКНА И УВЕДОМЛЕНИЯ
-    showDepositModal() {
-        if (!this.isLoggedIn) {
-            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
-            this.toggleProfilePanel(true);
-            return;
-        }
-
-        this.selectedDepositAmount = 0;
-        const selectedDeposit = document.getElementById('selectedDeposit');
-        const confirmDeposit = document.getElementById('confirmDeposit');
-        const depositModal = document.getElementById('depositModal');
-        
-        if (selectedDeposit) selectedDeposit.textContent = 'Выберите сумму для пополнения';
-        if (confirmDeposit) confirmDeposit.disabled = true;
-        
-        document.querySelectorAll('.deposit-option').forEach(option => {
-            option.classList.remove('selected');
-        });
-        
-        if (depositModal) depositModal.style.display = 'block';
-    }
-
-    closeDepositModal() {
-        const depositModal = document.getElementById('depositModal');
-        if (depositModal) depositModal.style.display = 'none';
-    }
-
-    selectDeposit(amount) {
-        this.selectedDepositAmount = amount;
-        
-        document.querySelectorAll('.deposit-option').forEach(option => {
-            option.classList.toggle('selected', parseInt(option.dataset.amount) === amount);
-        });
-        
-        const selectedDeposit = document.getElementById('selectedDeposit');
-        const confirmDeposit = document.getElementById('confirmDeposit');
-        
-        if (selectedDeposit) selectedDeposit.textContent = `Выбрано: ${amount} ⭐`;
-        if (confirmDeposit) confirmDeposit.disabled = false;
-    }
-
-    processDeposit() {
-        if (!this.isLoggedIn) {
-            this.showNotification('❌ Сначала авторизуйтесь');
-            return;
-        }
-
-        if (this.selectedDepositAmount > 0) {
-            const data = {
-                action: 'deposit_request',
-                user_id: this.userId,
-                amount: this.selectedDepositAmount,
-                bot_type: this.currentBot
+    // СЕТЕВЫЕ ФУНКЦИИ
+    async sendToNetlify(data) {
+        if (!this.isOnline) {
+            console.log('📡 Офлайн режим - запрос не отправлен');
+            return {
+                success: true,
+                message: 'Офлайн режим - данные сохранены локально',
+                offline: true
             };
-            
-            console.log('💰 Отправка запроса на пополнение:', data);
-            
-            this.sendToBot(data).then(success => {
-                if (success) {
-                    this.updateUserDisplay();
-                    this.showNotification(`✅ Баланс пополнен на ${this.selectedDepositAmount} ⭐`);
-                    this.closeDepositModal();
-                }
+        }
+
+        console.log(`📡 Отправка данных в Netlify:`, data);
+        
+        try {
+            const response = await fetch(this.netlifyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    ...data,
+                    user_id: this.userId,
+                    bot_type: this.currentBot,
+                    timestamp: Date.now(),
+                    username: this.userData?.username,
+                    first_name: this.userData?.first_name,
+                    domain: 'teal-lollipop-dfedaf'
+                })
             });
-        } else {
-            this.showNotification('❌ Выберите сумму для пополнения');
-        }
-    }
-
-    showPrizeModal(prize) {
-        if (!this.isLoggedIn) return;
-
-        const prizeCombination = document.getElementById('prizeCombination');
-        const prizeName = document.getElementById('prizeName');
-        const prizeValue = document.getElementById('prizeValue');
-        const prizeSticker = document.getElementById('prizeSticker');
-        const prizeModal = document.getElementById('prizeModal');
-        
-        if (prizeCombination) prizeCombination.style.display = 'none';
-        if (prizeName) prizeName.textContent = prize.name;
-        if (prizeValue) prizeValue.textContent = `Стоимость: ${prize.value} ⭐`;
-        if (prizeSticker) {
-            const stickerPath = this.stickerPaths[prize.sticker];
-            prizeSticker.innerHTML = `<img src="${stickerPath}" alt="${prize.name}" class="sticker-gif" style="width: 120px; height: 120px;">`;
-        }
-        if (prizeModal) prizeModal.style.display = 'block';
-        
-        this.createConfetti();
-    }
-
-    closePrizeModal() {
-        const prizeModal = document.getElementById('prizeModal');
-        if (prizeModal) prizeModal.style.display = 'none';
-        this.currentPrize = null;
-    }
-
-    withdrawPrize() {
-        if (!this.isLoggedIn) {
-            this.showNotification('❌ Сначала авторизуйтесь');
-            return;
-        }
-
-        if (this.currentPrize) {
-            const data = {
-                action: 'withdraw_prize',
-                user_id: this.userId,
-                prize: this.currentPrize.name,
-                value: this.currentPrize.value,
-                sticker: this.currentPrize.sticker,
-                bot_type: this.currentBot
-            };
             
-            console.log('🎁 Отправка запроса на вывод приза:', data);
-            this.sendToBot(data);
+            console.log('📡 Статус ответа:', response.status);
             
-            this.showNotification('🎁 Запрос на вывод отправлен на модерацию!');
-            this.closePrizeModal();
-        }
-    }
-
-    sellPrize() {
-        if (!this.isLoggedIn) {
-            this.showNotification('❌ Сначала авторизуйтесь');
-            return;
-        }
-
-        if (this.currentPrize) {
-            this.userBalance += this.currentPrize.value;
-            if (this.userData) {
-                this.userData.balance = this.userBalance;
-                this.saveUserToLocalStorage(this.userData);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            this.showNotification(`💰 Приз "${this.currentPrize.name}" продан за ${this.currentPrize.value} ⭐`);
-            this.updateUserDisplay();
-            this.saveUserDataToDatabase();
-            this.closePrizeModal();
+            
+            const result = await response.json();
+            console.log('✅ Ответ от Netlify:', result);
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Ошибка отправки в Netlify:', error);
+            
+            return {
+                success: true,
+                message: 'Офлайн режим - данные сохранены локально',
+                offline: true
+            };
         }
     }
 
-    showNotification(message) {
-        const notification = document.getElementById('notification');
-        if (notification) {
-            notification.textContent = message;
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
+    async sendToBot(data) {
+        console.log(`📡 Отправка данных:`, data);
+        
+        const result = await this.sendToNetlify(data);
+            
+        if (result.success) {
+            if (result.user_data && !result.offline) {
+                this.updateFromServerData(result.user_data);
+            }
+            return true;
+        } else {
+            this.showNotification('❌ ' + (result.error || 'Ошибка сервера'));
+            return false;
         }
     }
 
-    createConfetti() {
-        const confettiContainer = document.getElementById('confettiContainer');
-        if (!confettiContainer) return;
+    updateFromServerData(serverData) {
+        console.log('🔄 Обновление данных с сервера:', serverData);
         
-        confettiContainer.innerHTML = '';
-        
-        const confettiCount = 100;
-        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'];
-        
-        for (let i = 0; i < confettiCount; i++) {
-            const confetti = document.createElement('div');
-            confetti.className = 'confetti';
-            confetti.style.left = Math.random() * 100 + 'vw';
-            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.animationDelay = Math.random() * 3 + 's';
-            confettiContainer.appendChild(confetti);
+        if (serverData.balance !== undefined && this.userData) {
+            this.userBalance = serverData.balance;
+            this.userData.balance = serverData.balance;
+            this.saveUserToLocalStorage(this.userData);
         }
         
-        setTimeout(() => {
-            confettiContainer.innerHTML = '';
-        }, 5000);
+        this.updateUserDisplay();
+        console.log('✅ Данные обновлены, баланс:', this.userBalance);
     }
 
-    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+    async saveUserDataToDatabase() {
+        if (!this.isLoggedIn) return;
+        
+        console.log('💾 Сохранение данных...');
+        
+        if (this.isOnline && this.userData) {
+            try {
+                const data = {
+                    action: 'update_balance',
+                    user_id: this.userId,
+                    balance: this.userBalance,
+                    games_played: this.gamesPlayed,
+                    total_won: this.totalWon,
+                    biggest_win: this.biggestWin,
+                    wins_count: this.winsCount,
+                    bot_type: this.currentBot
+                };
+                
+                console.log('📤 Отправка данных:', data);
+                await this.sendToNetlify(data);
+                
+            } catch (error) {
+                console.error('❌ Ошибка отправки данных:', error);
+            }
+        }
+    }
+
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    setupOnlineListeners() {
+        window.addEventListener('online', () => {
+            console.log('🌐 Приложение онлайн');
+            this.isOnline = true;
+            this.showNotification('✅ Соединение восстановлено');
+            this.updateOnlineStatus(true);
+            this.syncWithServer();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('❌ Приложение офлайн');
+            this.isOnline = false;
+            this.showNotification('⚠️ Режим офлайн - данные сохранятся локально');
+            this.updateOnlineStatus(false);
+        });
+    }
+
+    updateOnlineStatus(online) {
+        const statusElement = document.getElementById('onlineStatus');
+        const statusText = document.getElementById('statusText');
+        if (statusElement) {
+            statusElement.className = online ? 'status-dot' : 'status-dot offline';
+        }
+        if (statusText) {
+            statusText.textContent = online ? 'онлайн' : 'офлайн';
+        }
+    }
+
+    checkOnlineStatus() {
+        this.isOnline = navigator.onLine;
+        console.log('🌐 Статус соединения:', this.isOnline ? 'онлайн' : 'офлайн');
+        this.updateOnlineStatus(this.isOnline);
+    }
+
+    detectCurrentBot() {
+        console.log('🔍 Определение текущего бота...');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const startParam = urlParams.get('startapp') || urlParams.get('start');
+        
+        if (startParam === 'consoltotka_bot' || startParam?.includes('consoltotka')) {
+            this.currentBot = 'proxy';
+            console.log('🔧 Определен КОНСОЛЬ-БОТ @consoltotka_bot');
+            this.showProxyBanner();
+        } else {
+            this.currentBot = 'main';
+            console.log('🎰 Определен ОСНОВНОЙ БОТ @sosazvezd_bot');
+        }
+    }
+
+    showProxyBanner() {
+        // ... код баннера
+    }
+
+    async preloadStickers() {
+        console.log('🔄 Предзагрузка GIF стикеров...');
+        const allStickers = Object.keys(this.stickerPaths);
+        
+        const preloadPromises = allStickers.map(sticker => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = this.stickerPaths[sticker];
+                img.onload = () => {
+                    console.log(`✅ Стикер ${sticker} загружен`);
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`❌ Ошибка загрузки стикера ${sticker}`);
+                    resolve();
+                };
+            });
+        });
+
+        await Promise.all(preloadPromises);
+        this.stickersLoaded = true;
+        console.log('✅ Все GIF стикеры загружены');
+    }
+
+    // ... остальные методы без изменений
+
     setupEventListeners() {
         document.addEventListener('gesturestart', function(e) {
             e.preventDefault();
@@ -1176,33 +1051,6 @@ class CasinoApp {
         `).join('');
     }
 
-    async saveUserDataToDatabase() {
-        if (!this.isLoggedIn) return;
-        
-        console.log('💾 Сохранение данных...');
-        
-        if (this.isOnline && this.userData) {
-            try {
-                const data = {
-                    action: 'update_balance',
-                    user_id: this.userId,
-                    balance: this.userBalance,
-                    games_played: this.gamesPlayed,
-                    total_won: this.totalWon,
-                    biggest_win: this.biggestWin,
-                    wins_count: this.winsCount,
-                    bot_type: this.currentBot
-                };
-                
-                console.log('📤 Отправка данных:', data);
-                await this.sendToNetlify(data);
-                
-            } catch (error) {
-                console.error('❌ Ошибка отправки данных:', error);
-            }
-        }
-    }
-
     async syncWithServer() {
         if (!this.isOnline || !this.isLoggedIn) return;
         
@@ -1223,9 +1071,210 @@ class CasinoApp {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    showAuthSection() {
-        // В новой версии авторизация только в профиле
-        this.toggleProfilePanel(true);
+    // МОДАЛЬНЫЕ ОКНА И УВЕДОМЛЕНИЯ
+    showDepositModal() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
+            this.toggleProfilePanel(true);
+            return;
+        }
+
+        this.selectedDepositAmount = 0;
+        const selectedDeposit = document.getElementById('selectedDeposit');
+        const confirmDeposit = document.getElementById('confirmDeposit');
+        const depositModal = document.getElementById('depositModal');
+        
+        if (selectedDeposit) selectedDeposit.textContent = 'Выберите сумму для пополнения';
+        if (confirmDeposit) confirmDeposit.disabled = true;
+        
+        document.querySelectorAll('.deposit-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        if (depositModal) depositModal.style.display = 'block';
+    }
+
+    closeDepositModal() {
+        const depositModal = document.getElementById('depositModal');
+        if (depositModal) depositModal.style.display = 'none';
+    }
+
+    selectDeposit(amount) {
+        this.selectedDepositAmount = amount;
+        
+        document.querySelectorAll('.deposit-option').forEach(option => {
+            option.classList.toggle('selected', parseInt(option.dataset.amount) === amount);
+        });
+        
+        const selectedDeposit = document.getElementById('selectedDeposit');
+        const confirmDeposit = document.getElementById('confirmDeposit');
+        
+        if (selectedDeposit) selectedDeposit.textContent = `Выбрано: ${amount} ⭐`;
+        if (confirmDeposit) confirmDeposit.disabled = false;
+    }
+
+    processDeposit() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь');
+            return;
+        }
+
+        if (this.selectedDepositAmount > 0) {
+            const data = {
+                action: 'deposit_request',
+                user_id: this.userId,
+                amount: this.selectedDepositAmount,
+                bot_type: this.currentBot
+            };
+            
+            console.log('💰 Отправка запроса на пополнение:', data);
+            
+            this.sendToBot(data).then(success => {
+                if (success) {
+                    this.updateUserDisplay();
+                    this.showNotification(`✅ Баланс пополнен на ${this.selectedDepositAmount} ⭐`);
+                    this.closeDepositModal();
+                }
+            });
+        } else {
+            this.showNotification('❌ Выберите сумму для пополнения');
+        }
+    }
+
+    showPrizeModal(prize) {
+        if (!this.isLoggedIn) return;
+
+        const prizeCombination = document.getElementById('prizeCombination');
+        const prizeName = document.getElementById('prizeName');
+        const prizeValue = document.getElementById('prizeValue');
+        const prizeSticker = document.getElementById('prizeSticker');
+        const prizeModal = document.getElementById('prizeModal');
+        
+        if (prizeCombination) prizeCombination.style.display = 'none';
+        if (prizeName) prizeName.textContent = prize.name;
+        if (prizeValue) prizeValue.textContent = `Стоимость: ${prize.value} ⭐`;
+        if (prizeSticker) {
+            const stickerPath = this.stickerPaths[prize.sticker];
+            prizeSticker.innerHTML = `<img src="${stickerPath}" alt="${prize.name}" class="sticker-gif" style="width: 120px; height: 120px;">`;
+        }
+        if (prizeModal) prizeModal.style.display = 'block';
+        
+        this.createConfetti();
+    }
+
+    closePrizeModal() {
+        const prizeModal = document.getElementById('prizeModal');
+        if (prizeModal) prizeModal.style.display = 'none';
+        this.currentPrize = null;
+    }
+
+    withdrawPrize() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь');
+            return;
+        }
+
+        if (this.currentPrize) {
+            const data = {
+                action: 'withdraw_prize',
+                user_id: this.userId,
+                prize: this.currentPrize.name,
+                value: this.currentPrize.value,
+                sticker: this.currentPrize.sticker,
+                bot_type: this.currentBot
+            };
+            
+            console.log('🎁 Отправка запроса на вывод приза:', data);
+            this.sendToBot(data);
+            
+            this.showNotification('🎁 Запрос на вывод отправлен на модерацию!');
+            this.closePrizeModal();
+        }
+    }
+
+    sellPrize() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь');
+            return;
+        }
+
+        if (this.currentPrize) {
+            this.userBalance += this.currentPrize.value;
+            if (this.userData) {
+                this.userData.balance = this.userBalance;
+                this.saveUserToLocalStorage(this.userData);
+            }
+            this.showNotification(`💰 Приз "${this.currentPrize.name}" продан за ${this.currentPrize.value} ⭐`);
+            this.updateUserDisplay();
+            this.saveUserDataToDatabase();
+            this.closePrizeModal();
+        }
+    }
+
+    showNotification(message) {
+        const notification = document.getElementById('notification');
+        if (notification) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    }
+
+    createConfetti() {
+        const confettiContainer = document.getElementById('confettiContainer');
+        if (!confettiContainer) return;
+        
+        confettiContainer.innerHTML = '';
+        
+        const confettiCount = 100;
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3'];
+        
+        for (let i = 0; i < confettiCount; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.animationDelay = Math.random() * 3 + 's';
+            confettiContainer.appendChild(confetti);
+        }
+        
+        setTimeout(() => {
+            confettiContainer.innerHTML = '';
+        }, 5000);
+    }
+
+    // НАВИГАЦИЯ
+    showSection(section) {
+        if (!this.isLoggedIn && section !== 'welcome') {
+            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
+            this.toggleProfilePanel(true);
+            return;
+        }
+
+        document.querySelectorAll('.section').forEach(sec => {
+            sec.classList.remove('active');
+        });
+        
+        const sectionElement = document.getElementById(section + '-section');
+        if (sectionElement) {
+            sectionElement.classList.add('active');
+        }
+        
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const navItems = document.querySelectorAll('.nav-item');
+        const sectionIndex = ['history', 'casino', 'market'].indexOf(section);
+        if (sectionIndex !== -1 && navItems[sectionIndex]) {
+            navItems[sectionIndex].classList.add('active');
+        }
+    }
+
+    updateUI() {
+        this.updateUserDisplay();
     }
 }
 
@@ -1252,6 +1301,10 @@ function showSection(section) {
 
 function toggleProfilePanel(show) {
     if (casino) casino.toggleProfilePanel(show);
+}
+
+function loginWithTelegram() {
+    if (casino) casino.loginWithTelegram();
 }
 
 function logout() {
@@ -1302,7 +1355,7 @@ function buyNFT() {
     if (casino) casino.buyNFT();
 }
 
-// Обработчики для свайпов (мобильные устройства)
+// Обработчики для свайпов
 let touchStartX = 0;
 let touchEndX = 0;
 
@@ -1319,7 +1372,7 @@ function handleSwipe() {
     const swipeThreshold = 50;
     const diff = touchStartX - touchEndX;
     
-    if (Math.abs(diff) > swipeThreshold && casino) {
+    if (Math.abs(diff) > swipeThreshold && casino && casino.isLoggedIn) {
         const sections = ['history', 'casino', 'market'];
         const currentSection = document.querySelector('.section.active').id.replace('-section', '');
         const currentIndex = sections.indexOf(currentSection);
