@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎁 Telegram NFT Marketplace</title>
+    <title>🎰 CASINO Totki</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -11,174 +11,209 @@
     <!-- Анимированный фон -->
     <div class="background-animation"></div>
 
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
             <div class="logo">
-                <span class="logo-icon">🎁</span>
-                <span class="logo-text">NFT Marketplace</span>
+                <span class="logo-icon">🎰</span>
+                <span class="logo-text">CASINO Totki</span>
             </div>
+        </div>
+        
+        <div class="header-right">
             <div class="user-status">
                 <span id="onlineStatus" class="status-dot"></span>
                 <span id="statusText">онлайн</span>
             </div>
+            <div class="profile-avatar" id="profileAvatarBtn" onclick="toggleProfilePanel()">
+                <div class="gradient-avatar" id="profileAvatarInitial">👤</div>
+            </div>
         </div>
+    </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Auth Section -->
-            <div class="section active" id="auth-section">
-                <div class="auth-container">
-                    <div class="auth-card">
-                        <div class="auth-icon">🔐</div>
-                        <h2 class="auth-title">Добро пожаловать!</h2>
-                        <p class="auth-subtitle">Для доступа к NFT Marketplace требуется авторизация через Telegram</p>
-                        
-                        <div class="telegram-auth-btn" onclick="marketplace.initTelegramAuth()">
-                            <div class="tg-icon">📱</div>
-                            <div class="tg-text">
-                                <div class="tg-title">Войти через Telegram</div>
-                                <div class="tg-subtitle">Быстро и безопасно</div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Casino Section -->
+        <div class="section active" id="casino-section">
+            <!-- Slot Machine -->
+            <div class="slot-machine">
+                <div class="slot-display">
+                    <div class="reels-container">
+                        <div class="reel" id="reel1">
+                            <div class="reel-sticker" id="sticker1">
+                                <img src="./stickers/bear.gif" alt="Bear" class="sticker-gif">
                             </div>
                         </div>
-
-                        <div class="auth-features">
-                            <div class="feature-item">
-                                <span class="feature-icon">⚡</span>
-                                <span>Мгновенная авторизация</span>
+                        <div class="reel" id="reel2">
+                            <div class="reel-sticker" id="sticker2">
+                                <img src="./stickers/rose.gif" alt="Rose" class="sticker-gif">
                             </div>
-                            <div class="feature-item">
-                                <span class="feature-icon">🔒</span>
-                                <span>Без паролей</span>
-                            </div>
-                            <div class="feature-item">
-                                <span class="feature-icon">🎁</span>
-                                <span>Доступ к NFT коллекциям</span>
+                        </div>
+                        <div class="reel" id="reel3">
+                            <div class="reel-sticker" id="sticker3">
+                                <img src="./stickers/ring.gif" alt="Ring" class="sticker-gif">
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Marketplace Section -->
-            <div class="section" id="marketplace-section">
-                <div class="section-header">
-                    <h2>🎨 Каталог NFT</h2>
-                    <p class="section-subtitle">Уникальные цифровые подарки для ваших друзей</p>
-                </div>
-                
-                <div class="marketplace-stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalNfts">12</div>
-                        <div class="stat-label">NFT в каталоге</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalSales">0</div>
-                        <div class="stat-label">Всего продаж</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalVolume">0</div>
-                        <div class="stat-label">Общий объем</div>
-                    </div>
+                <!-- Current Result -->
+                <div class="current-result">
+                    <div class="result-combination" id="resultCombination">🧸🌹💍</div>
+                    <div class="result-message" id="resultMessage">Выберите ставку и крутите!</div>
                 </div>
 
-                <div class="nft-grid" id="nftCatalog">
-                    <!-- NFT карточки будут здесь -->
-                </div>
-            </div>
-
-            <!-- Inventory Section -->
-            <div class="section" id="inventory-section">
-                <div class="section-header">
-                    <h2>📦 Моя коллекция</h2>
-                    <p class="section-subtitle">Ваши уникальные NFT подарки</p>
-                </div>
-                
-                <div class="inventory-stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="userNftCount">0</div>
-                        <div class="stat-label">NFT в коллекции</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="userBalance">0</div>
-                        <div class="stat-label">Ваш баланс</div>
-                    </div>
-                </div>
-
-                <div class="inventory-grid" id="userInventory">
-                    <!-- Коллекция пользователя будет здесь -->
-                </div>
-            </div>
-
-            <!-- Profile Section -->
-            <div class="section" id="profile-section">
-                <div class="profile-header">
-                    <div class="profile-avatar-large" id="profileAvatar">
-                        <div class="gradient-avatar-large" id="profileAvatarInitial">T</div>
-                    </div>
-                    <div class="profile-info-large">
-                        <div class="profile-name-large" id="profileName">Гость</div>
-                        <div class="profile-id-large">ID: <span id="profileId">не авторизован</span></div>
-                        <div class="profile-username" id="profileUsername"></div>
-                    </div>
-                </div>
-
-                <div class="balance-card">
-                    <div class="balance-header">
-                        <span class="balance-label">Баланс</span>
-                        <span class="balance-amount" id="profileBalance">0 ⭐</span>
-                    </div>
-                    <button class="deposit-btn" onclick="marketplace.showDepositModal()">
-                        💰 Пополнить баланс
-                    </button>
-                </div>
-
-                <div class="stats-card">
-                    <h3>📈 Статистика</h3>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">NFT в коллекции:</span>
-                            <span class="stat-value" id="statNftCount">0</span>
+                <!-- Bet Selection -->
+                <div class="bet-selection">
+                    <div class="bet-title">СТАВКА</div>
+                    <div class="bet-options">
+                        <div class="bet-option active" data-bet="3" onclick="selectBet(3)">
+                            <div class="bet-amount">3 ⭐</div>
+                            <div class="bet-prize">КОЛЬЦО</div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Всего покупок:</span>
-                            <span class="stat-value" id="statTotalPurchases">0</span>
+                        <div class="bet-option" data-bet="9" onclick="selectBet(9)">
+                            <div class="bet-amount">9 ⭐</div>
+                            <div class="bet-prize">NFT 300⭐</div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Потрачено:</span>
-                            <span class="stat-value" id="statTotalSpent">0 ⭐</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">В системе с:</span>
-                            <span class="stat-value" id="statMemberSince">-</span>
+                        <div class="bet-option" data-bet="15" onclick="selectBet(15)">
+                            <div class="bet-amount">15 ⭐</div>
+                            <div class="bet-prize">NFT 700⭐</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="profile-actions">
-                    <button class="action-btn secondary" onclick="marketplace.logout()">
-                        🔄 Переавторизация
-                    </button>
-                    <button class="action-btn danger" onclick="marketplace.showLogoutConfirm()">
-                        🚪 Выйти
-                    </button>
-                </div>
+                <!-- Spin Button -->
+                <button class="spin-btn" id="spinBtn" onclick="spinSlot()">
+                    <span class="spin-text">КРУТИТЬ ЗА</span>
+                    <span class="spin-amount" id="spinAmount">3 ⭐</span>
+                </button>
+                <button class="spin-btn quick-spin" id="quickSpinBtn" onclick="spinSlot()" style="display: none;">
+                    <span class="spin-text">⚡ БЫСТРАЯ КРУТКА</span>
+                    <span class="spin-amount" id="quickSpinAmount">3 ⭐</span>
+                </button>
+
+                <button class="quick-toggle" onclick="toggleQuickSpin()">
+                    ⚡ Быстрая крутка
+                </button>
             </div>
         </div>
 
-        <!-- Bottom Navigation -->
-        <div class="bottom-nav">
-            <div class="nav-item" onclick="marketplace.showSection('marketplace')">
-                <div class="nav-icon">🛍️</div>
-                <div class="nav-label">Маркетплейс</div>
+        <!-- History Section -->
+        <div class="section" id="history-section">
+            <div class="section-header">
+                <h2>📊 История игр</h2>
             </div>
-            <div class="nav-item" onclick="marketplace.showSection('inventory')">
-                <div class="nav-icon">📦</div>
-                <div class="nav-label">Коллекция</div>
+            <div class="history-list" id="historyList">
+                <div class="history-empty">Пока нет истории игр</div>
             </div>
-            <div class="nav-item active" onclick="marketplace.showSection('profile')">
-                <div class="nav-icon">👤</div>
-                <div class="nav-label">Профиль</div>
+        </div>
+
+        <!-- NFT Market Section -->
+        <div class="section" id="market-section">
+            <div class="section-header">
+                <h2>🖼️ NFT Маркетплейс</h2>
+                <div class="section-subtitle">Коллекционные стикеры и призы</div>
+            </div>
+            
+            <div class="nft-catalog" id="nftCatalog">
+                <!-- NFT карточки будут генерироваться через JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="showSection('history')">
+            <div class="nav-icon">📊</div>
+            <div class="nav-label">История</div>
+        </div>
+        <div class="nav-item" onclick="showSection('casino')">
+            <div class="nav-icon">🎰</div>
+            <div class="nav-label">Казино</div>
+        </div>
+        <div class="nav-item" onclick="showSection('market')">
+            <div class="nav-icon">🖼️</div>
+            <div class="nav-label">NFT Market</div>
+        </div>
+    </div>
+
+    <!-- Profile Panel -->
+    <div class="profile-panel" id="profilePanel">
+        <div class="profile-panel-overlay" onclick="toggleProfilePanel()"></div>
+        <div class="profile-panel-content">
+            <div class="profile-panel-header">
+                <h3>👤 Профиль</h3>
+                <button class="panel-close" onclick="toggleProfilePanel()">✕</button>
+            </div>
+            
+            <div class="profile-panel-body">
+                <!-- Telegram Auth -->
+                <div class="auth-section" id="authSection">
+                    <div class="auth-info">
+                        <h4>Войдите через Telegram</h4>
+                        <p>Чтобы играть в казино и покупать NFT</p>
+                    </div>
+                    <a href="https://t.me/sosazvezd_bot?startapp=sosazvezd_bot" class="telegram-auth-btn" id="telegramAuthBtn">
+                        <span class="tg-icon">📱</span>
+                        Войти через Telegram
+                    </a>
+                    <div class="auth-note">
+                        Откроется в приложении Telegram
+                    </div>
+                </div>
+
+                <!-- User Profile -->
+                <div class="user-profile" id="userProfile" style="display: none;">
+                    <div class="user-header">
+                        <div class="user-avatar-large">
+                            <img src="" alt="Avatar" id="userAvatarImg" class="avatar-image">
+                            <div class="avatar-fallback" id="avatarFallback"></div>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name" id="userName">Пользователь</div>
+                            <div class="user-username" id="userUsername">@username</div>
+                            <div class="user-id">ID: <span id="userId">-</span></div>
+                        </div>
+                    </div>
+
+                    <div class="balance-card">
+                        <div class="balance-info">
+                            <span class="balance-label">Баланс</span>
+                            <span class="balance-amount" id="panelBalance">0 ⭐</span>
+                        </div>
+                        <button class="deposit-btn" onclick="showDepositModal()">
+                            💰 Пополнить
+                        </button>
+                    </div>
+
+                    <div class="stats-card">
+                        <h4>📈 Статистика</h4>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">Сыграно игр:</span>
+                                <span class="stat-value" id="panelGames">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Винрейт:</span>
+                                <span class="stat-value" id="panelWinrate">0%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Общий выигрыш:</span>
+                                <span class="stat-value" id="panelTotalWon">0 ⭐</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Рекорд:</span>
+                                <span class="stat-value" id="panelRecord">0 ⭐</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="user-actions">
+                        <button class="logout-btn" onclick="logout()">
+                            👋 Выйти
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -188,33 +223,60 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>💰 Пополнение баланса</h2>
-                <button class="modal-close" onclick="marketplace.closeDepositModal()">✕</button>
+                <button class="modal-close" onclick="closeDepositModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="deposit-options">
-                    <div class="deposit-option" onclick="marketplace.selectDeposit(100)">
+                    <div class="deposit-option" onclick="selectDeposit(25)">
+                        <div class="deposit-amount">25 ⭐</div>
+                        <div class="deposit-price">~ 25 руб</div>
+                    </div>
+                    <div class="deposit-option" onclick="selectDeposit(50)">
+                        <div class="deposit-amount">50 ⭐</div>
+                        <div class="deposit-price">~ 50 руб</div>
+                    </div>
+                    <div class="deposit-option" onclick="selectDeposit(75)">
+                        <div class="deposit-amount">75 ⭐</div>
+                        <div class="deposit-price">~ 75 руб</div>
+                    </div>
+                    <div class="deposit-option" onclick="selectDeposit(100)">
                         <div class="deposit-amount">100 ⭐</div>
                         <div class="deposit-price">~ 100 руб</div>
-                    </div>
-                    <div class="deposit-option" onclick="marketplace.selectDeposit(500)">
-                        <div class="deposit-amount">500 ⭐</div>
-                        <div class="deposit-price">~ 500 руб</div>
-                    </div>
-                    <div class="deposit-option" onclick="marketplace.selectDeposit(1000)">
-                        <div class="deposit-amount">1000 ⭐</div>
-                        <div class="deposit-price">~ 1000 руб</div>
-                    </div>
-                    <div class="deposit-option" onclick="marketplace.selectDeposit(5000)">
-                        <div class="deposit-amount">5000 ⭐</div>
-                        <div class="deposit-price">~ 5000 руб</div>
                     </div>
                 </div>
                 <div class="selected-deposit" id="selectedDeposit">
                     Выберите сумму для пополнения
                 </div>
                 <div class="deposit-actions">
-                    <button class="modal-btn secondary" onclick="marketplace.closeDepositModal()">Отмена</button>
-                    <button class="modal-btn primary" id="confirmDeposit" disabled onclick="marketplace.processDeposit()">Пополнить</button>
+                    <button class="modal-btn secondary" onclick="closeDepositModal()">Отмена</button>
+                    <button class="modal-btn primary" id="confirmDeposit" disabled onclick="processDeposit()">Пополнить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prize Modal -->
+    <div class="modal" id="prizeModal">
+        <div class="modal-content prize-modal">
+            <div id="confettiContainer"></div>
+            <div class="modal-header">
+                <h2>🎉 Ты выиграл приз!</h2>
+            </div>
+            <div class="modal-body">
+                <div class="prize-combination" id="prizeCombination">🧸🧸🧸</div>
+                <div class="prize-image">
+                    <div class="prize-sticker" id="prizeSticker">
+                        <!-- GIF стикер приза будет здесь -->
+                    </div>
+                </div>
+                <div class="prize-name" id="prizeName">Мишка</div>
+                <div class="prize-value" id="prizeValue">Стоимость: 20 ⭐</div>
+                <div class="prize-message">
+                    Вы можете продать приз или вывести его!
+                </div>
+                <div class="prize-actions">
+                    <button class="modal-btn secondary" onclick="sellPrize()">💰 Продать</button>
+                    <button class="modal-btn primary" onclick="withdrawPrize()">🎁 Вывести</button>
                 </div>
             </div>
         </div>
@@ -224,54 +286,20 @@
     <div class="modal" id="buyNftModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🎁 Покупка NFT</h2>
-                <button class="modal-close" onclick="marketplace.closeBuyModal()">✕</button>
+                <h2>🖼️ Покупка NFT</h2>
+                <button class="modal-close" onclick="closeBuyModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="nft-preview" id="nftPreview">
-                    <!-- Превью NFT будет здесь -->
+                    <!-- NFT preview будет здесь -->
                 </div>
-                <div class="buy-options">
-                    <div class="form-group">
-                        <label class="form-label">Получатель</label>
-                        <input type="text" id="recipientInput" class="form-input" placeholder="@username или оставьте пустым для себя">
-                        <small>Оставьте пустым, чтобы добавить в свою коллекцию</small>
-                    </div>
-                    <div class="price-summary">
-                        <div class="price-item">
-                            <span>Стоимость NFT:</span>
-                            <span id="nftPrice">0 ⭐</span>
-                        </div>
-                        <div class="price-total">
-                            <span>Итого к списанию:</span>
-                            <span id="totalPrice">0 ⭐</span>
-                        </div>
-                    </div>
+                <div class="nft-price-info">
+                    <div class="price-label">Цена:</div>
+                    <div class="price-amount" id="nftPrice">0 ⭐</div>
                 </div>
-                <div class="buy-actions">
-                    <button class="modal-btn secondary" onclick="marketplace.closeBuyModal()">Отмена</button>
-                    <button class="modal-btn primary" onclick="marketplace.confirmPurchase()">Купить сейчас</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Logout Confirm Modal -->
-    <div class="modal" id="logoutModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🚪 Выход из системы</h2>
-                <button class="modal-close" onclick="marketplace.closeLogoutModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="logout-message">
-                    <div class="logout-icon">⚠️</div>
-                    <h3>Вы уверены, что хотите выйти?</h3>
-                    <p>Ваши данные будут сохранены, но для доступа потребуется повторная авторизация через Telegram.</p>
-                </div>
-                <div class="logout-actions">
-                    <button class="modal-btn secondary" onclick="marketplace.closeLogoutModal()">Отмена</button>
-                    <button class="modal-btn danger" onclick="marketplace.logout()">Выйти</button>
+                <div class="nft-actions">
+                    <button class="modal-btn secondary" onclick="closeBuyModal()">Отмена</button>
+                    <button class="modal-btn primary" onclick="buyNFT()">Купить</button>
                 </div>
             </div>
         </div>
