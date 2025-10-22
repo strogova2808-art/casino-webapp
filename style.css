@@ -1625,3 +1625,153 @@ body {
     -webkit-text-size-adjust: none;
     text-size-adjust: none;
 }
+
+/* Welcome Section */
+.welcome-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.welcome-card {
+    background: rgba(22, 33, 62, 0.8);
+    border-radius: var(--border-radius);
+    padding: 40px 30px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-lg);
+}
+
+.welcome-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.welcome-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.welcome-text {
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.welcome-features {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 35px;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition);
+}
+
+.feature:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(5px);
+}
+
+.feature-icon {
+    font-size: 20px;
+    width: 30px;
+    text-align: center;
+}
+
+.feature-text {
+    color: var(--text-primary);
+    font-weight: 500;
+    flex: 1;
+    text-align: left;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 18px 24px;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: var(--border-radius);
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.login-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+}
+
+.login-btn:active {
+    transform: translateY(-1px);
+}
+
+.login-icon {
+    font-size: 22px;
+}
+
+.welcome-note {
+    margin-top: 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-style: italic;
+}
+
+/* Адаптивность для welcome-страницы */
+@media (max-width: 480px) {
+    .welcome-container {
+        padding: 20px 15px;
+    }
+    
+    .welcome-card {
+        padding: 30px 20px;
+    }
+    
+    .welcome-icon {
+        font-size: 60px;
+    }
+    
+    .welcome-title {
+        font-size: 24px;
+    }
+    
+    .welcome-text {
+        font-size: 15px;
+    }
+    
+    .feature {
+        padding: 10px 15px;
+    }
+    
+    .feature-icon {
+        font-size: 18px;
+        width: 25px;
+    }
+    
+    .login-btn {
+        padding: 16px 20px;
+        font-size: 16px;
+    }
+}
