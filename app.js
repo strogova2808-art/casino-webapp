@@ -95,7 +95,7 @@ class CasinoApp {
             'HePo': './stickers/HePo.gif'
         };
 
-        this.netlifyUrl = 'https://teal-lollipop-dfedaf.netlify.app/.netlify/functions/casino';
+        this.netlifyUrl = 'https://jade-pony-7cf4af.netlify.app/.netlify/functions/casino';
         
         console.log('🎰 Инициализация CasinoApp...');
         
@@ -1343,4 +1343,5 @@ window.addEventListener('orientationchange', function() {
     setTimeout(() => {
         window.scrollTo(0, 0);
     }, 100);
+
 });
