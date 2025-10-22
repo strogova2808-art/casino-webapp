@@ -33,8 +33,50 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Casino Section -->
-        <div class="section active" id="casino-section">
+        <!-- Welcome Section (показывается когда не авторизован) -->
+        <div class="section active" id="welcome-section">
+            <div class="welcome-container">
+                <div class="welcome-card">
+                    <div class="welcome-icon">🎰</div>
+                    <h1 class="welcome-title">Добро пожаловать в CASINO Totki!</h1>
+                    <p class="welcome-text">
+                        Для начала игры необходимо авторизоваться через Telegram.
+                        Нажмите кнопку ниже, чтобы войти в казино и начать играть!
+                    </p>
+                    
+                    <div class="welcome-features">
+                        <div class="feature">
+                            <span class="feature-icon">🎮</span>
+                            <span class="feature-text">Игровые автоматы с NFT призами</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🛍️</span>
+                            <span class="feature-text">NFT маркетплейс</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">📊</span>
+                            <span class="feature-text">Статистика и история игр</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">💎</span>
+                            <span class="feature-text">Пополнение баланса</span>
+                        </div>
+                    </div>
+
+                    <button class="login-btn" onclick="loginWithTelegram()">
+                        <span class="login-icon">🔐</span>
+                        Войти через Telegram
+                    </button>
+                    
+                    <div class="welcome-note">
+                        После входа вы сможете играть в казино и покупать NFT
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Casino Section (показывается после авторизации) -->
+        <div class="section" id="casino-section">
             <!-- Slot Machine -->
             <div class="slot-machine">
                 <div class="slot-display">
@@ -123,11 +165,11 @@
 
     <!-- Bottom Navigation -->
     <div class="bottom-nav">
-        <div class="nav-item active" onclick="showSection('history')">
+        <div class="nav-item" onclick="showSection('history')">
             <div class="nav-icon">📊</div>
             <div class="nav-label">История</div>
         </div>
-        <div class="nav-item" onclick="showSection('casino')">
+        <div class="nav-item active" onclick="showSection('casino')">
             <div class="nav-icon">🎰</div>
             <div class="nav-label">Казино</div>
         </div>
@@ -147,18 +189,18 @@
             </div>
             
             <div class="profile-panel-body">
-                <!-- Telegram Auth -->
+                <!-- Auth Section -->
                 <div class="auth-section" id="authSection">
                     <div class="auth-info">
                         <h4>Войдите через Telegram</h4>
                         <p>Чтобы играть в казино и покупать NFT</p>
                     </div>
-                    <a href="https://t.me/sosazvezd_bot?startapp=sosazvezd_bot" class="telegram-auth-btn" id="telegramAuthBtn">
-                        <span class="tg-icon">📱</span>
+                    <button class="telegram-auth-btn" onclick="loginWithTelegram()">
+                        <span class="tg-icon">🔐</span>
                         Войти через Telegram
-                    </a>
+                    </button>
                     <div class="auth-note">
-                        Откроется в приложении Telegram
+                        Авторизация в приложении Telegram
                     </div>
                 </div>
 
