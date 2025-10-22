@@ -135,19 +135,33 @@ exports.handler = async (event, context) => {
                     result.user_data = user;
                     break;
 
+                // АВТОМАТИЧЕСКОЕ ПОПОЛНЕНИЕ БАЛАНСА
                 case 'deposit_request':
                     const depositAmount = data.amount || 0;
                     
                     console.log(`💰 Deposit request from ${userId}: ${depositAmount} ⭐`);
                     
-                    // Уведомление админу о запросе на пополнение
+                    // АВТОМАТИЧЕСКОЕ ПОПОЛНЕНИЕ БАЛАНСА
+                    const oldBalance = user.balance;
+                    user.balance += depositAmount;
+                    
+                    console.log(`💰 Баланс пользователя ${userId} пополнен: ${oldBalance} -> ${user.balance} ⭐`);
+                    
+                    result.user_data = user;
+                    result.deposit_amount = depositAmount;
+                    result.old_balance = oldBalance;
+                    result.new_balance = user.balance;
+                    
+                    // Уведомление админу о пополнении
                     await sendTelegramMessage(
                         ADMIN_CHAT_ID,
-                        `💰 <b>ЗАПРОС НА ПОПОЛНЕНИЕ</b>\n\n` +
+                        `💰 <b>БАЛАНС ПОПОЛНЕН</b>\n\n` +
                         `👤 <b>Пользователь:</b> ${firstName}\n` +
                         `🆔 <b>ID:</b> <code>${userId}</code>\n` +
                         `📛 <b>Username:</b> @${username || 'нет'}\n` +
-                        `💎 <b>Сумма:</b> ${depositAmount} ⭐\n` +
+                        `💎 <b>Сумма пополнения:</b> ${depositAmount} ⭐\n` +
+                        `📊 <b>Было:</b> ${oldBalance} ⭐\n` +
+                        `🔄 <b>Стало:</b> ${user.balance} ⭐\n` +
                         `🤖 <b>Бот:</b> ${botType}`,
                         BOT_TOKENS.admin_notifications
                     );
@@ -175,7 +189,60 @@ exports.handler = async (event, context) => {
                     
                     break;
 
-                // ИСПРАВЛЕННАЯ ФУНКЦИЯ LIST_USERS
+                // КОМАНДА ДОБАВЛЕНИЯ ЗВЕЗД ОТ АДМИНА
+                case 'add_stars':
+                    console.log('⭐ Запрос на добавление звезд от админа:', data);
+                    
+                    // Проверяем права администратора
+                    if (data.admin_id != ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    const targetUserId = data.target_user_id;
+                    const starsToAdd = data.amount || 0;
+                    
+                    if (!users.has(targetUserId)) {
+                        result.success = false;
+                        result.error = 'Пользователь не найден';
+                    } else if (starsToAdd <= 0) {
+                        result.success = false;
+                        result.error = 'Неверная сумма для пополнения';
+                    } else {
+                        const targetUser = users.get(targetUserId);
+                        const oldUserBalance = targetUser.balance;
+                        targetUser.balance += starsToAdd;
+                        
+                        result.success = true;
+                        result.message = `Баланс пользователя пополнен на ${starsToAdd} ⭐`;
+                        result.user_data = targetUser;
+                        result.old_balance = oldUserBalance;
+                        result.new_balance = targetUser.balance;
+                        
+                        console.log(`✅ Админ добавил ${starsToAdd} ⭐ пользователю ${targetUserId}`);
+                        
+                        // Уведомление админу об успешном пополнении
+                        await sendTelegramMessage(
+                            ADMIN_CHAT_ID,
+                            `⭐ <b>АДМИН ДОБАВИЛ ЗВЕЗДЫ</b>\n\n` +
+                            `👤 <b>Пользователь:</b> ${targetUser.first_name}\n` +
+                            `🆔 <b>ID:</b> <code>${targetUserId}</code>\n` +
+                            `📛 <b>Username:</b> @${targetUser.username || 'нет'}\n` +
+                            `💎 <b>Добавлено:</b> ${starsToAdd} ⭐\n` +
+                            `📊 <b>Было:</b> ${oldUserBalance} ⭐\n` +
+                            `🔄 <b>Стало:</b> ${targetUser.balance} ⭐\n` +
+                            `👨‍💼 <b>Выполнил:</b> Администратор`,
+                            BOT_TOKENS.admin_notifications
+                        );
+                    }
+                    break;
+
                 case 'list_users':
                     console.log('📋 Запрос списка пользователей от админа:', data.admin_id);
                     
