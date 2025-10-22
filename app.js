@@ -1,3 +1,4 @@
+
 const fetch = require('node-fetch');
 
 // In-memory database
@@ -466,3 +467,4 @@ exports.handler = async (event, context) => {
         })
     };
 };
+
