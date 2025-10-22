@@ -74,18 +74,12 @@ html, body {
     66% { transform: translate(-20px, 20px) rotate(240deg); }
 }
 
-.container {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 80px;
-    position: relative;
-}
-
 /* Header */
 .header {
-    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
     background: rgba(22, 33, 62, 0.8);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -93,15 +87,20 @@ html, body {
     z-index: 100;
 }
 
-.logo {
+.header-left, .header-right {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 12px;
 }
 
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .logo-icon {
-    font-size: 28px;
+    font-size: 24px;
     background: var(--gradient-gold);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -115,7 +114,7 @@ html, body {
 }
 
 .logo-text {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 800;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
@@ -124,12 +123,62 @@ html, body {
     letter-spacing: -0.5px;
 }
 
+/* User Status */
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4CAF50;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.offline {
+    background: #f44336;
+}
+
+/* Profile Avatar */
+.profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.profile-avatar:hover {
+    transform: scale(1.1);
+}
+
+.gradient-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
 /* Main Content */
 .main-content {
     flex: 1;
     overflow: hidden;
     position: relative;
     padding: 0;
+    height: calc(100vh - 120px);
 }
 
 .section {
@@ -150,206 +199,28 @@ html, body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Auth Section */
-.auth-container {
-    max-width: 400px;
-    margin: 0 auto;
-    padding: 40px 0;
-}
-
-.auth-card {
-    background: rgba(22, 33, 62, 0.6);
-    backdrop-filter: blur(20px);
-    border-radius: var(--border-radius);
-    padding: 40px 30px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: var(--shadow-lg);
-    position: relative;
-    overflow: hidden;
-}
-
-.auth-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: var(--gradient-primary);
-}
-
-.auth-tabs {
-    display: flex;
-    margin-bottom: 30px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius-sm);
-    padding: 4px;
-}
-
-.auth-tab {
-    flex: 1;
-    padding: 12px 16px;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-weight: 600;
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    transition: var(--transition);
+/* Section Headers */
+.section-header {
     text-align: center;
+    margin-bottom: 25px;
 }
 
-.auth-tab.active {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.auth-form {
-    display: none;
-}
-
-.auth-form.active {
-    display: block;
-    animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-label {
-    display: block;
+.section-header h2 {
+    font-size: 24px;
+    font-weight: 800;
     margin-bottom: 8px;
-    color: var(--text-primary);
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.form-input {
-    width: 100%;
-    padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-sm);
-    color: var(--text-primary);
-    font-size: 16px;
-    transition: var(--transition);
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--accent-teal);
-    background: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-}
-
-.form-input::placeholder {
-    color: var(--text-secondary);
-}
-
-.btn {
-    width: 100%;
-    padding: 16px 24px;
-    border: none;
-    border-radius: var(--border-radius-sm);
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.btn:hover::before {
-    left: 100%;
-}
-
-.btn-primary {
     background: var(--gradient-primary);
-    color: white;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
-}
-
-.btn-secondary {
-    background: var(--gradient-secondary);
-    color: white;
-    box-shadow: 0 8px 24px rgba(245, 87, 108, 0.4);
-}
-
-.btn-secondary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(245, 87, 108, 0.6);
-}
-
-.auth-divider {
-    text-align: center;
-    margin: 25px 0;
-    position: relative;
+.section-subtitle {
     color: var(--text-secondary);
     font-size: 14px;
 }
 
-.auth-divider::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.auth-divider span {
-    background: var(--bg-surface);
-    padding: 0 15px;
-    position: relative;
-    z-index: 1;
-}
-
-.telegram-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    background: #0088cc;
-    color: white;
-    padding: 14px 20px;
-    border-radius: var(--border-radius-sm);
-    text-decoration: none;
-    font-weight: 600;
-    transition: var(--transition);
-    box-shadow: 0 8px 24px rgba(0, 136, 204, 0.4);
-}
-
-.telegram-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(0, 136, 204, 0.6);
-    background: #0077b3;
-}
-
-/* Casino Section */
+/* Slot Machine */
 .slot-machine {
     max-width: 440px;
     margin: 0 auto;
@@ -726,180 +597,405 @@ html, body {
     border-left-color: #666;
 }
 
-/* Profile Section */
-.profile-header {
-    text-align: center;
-    margin-bottom: 30px;
-    padding: 30px 25px;
-    background: rgba(22, 33, 62, 0.6);
-    border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow);
+/* NFT Market */
+.nft-catalog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-.profile-avatar-large {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 20px;
+.nft-card {
+    background: rgba(22, 33, 62, 0.6);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.nft-card:hover {
+    transform: translateY(-5px);
+    background: rgba(22, 33, 62, 0.8);
+    box-shadow: var(--shadow-lg);
+}
+
+.nft-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nft-badge.common {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.nft-badge.rare {
+    background: var(--gradient-teal);
+    color: white;
+}
+
+.nft-badge.epic {
+    background: var(--gradient-secondary);
+    color: white;
+}
+
+.nft-badge.legendary {
+    background: var(--gradient-gold);
+    color: #000;
+}
+
+.nft-image {
+    width: 100%;
+    height: 200px;
+    object-fit: contain;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+}
+
+.nft-info {
+    text-align: center;
+}
+
+.nft-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.nft-description {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.nft-creator {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.nft-supply {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+}
+
+.nft-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.price-amount {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-accent);
+}
+
+.buy-btn {
+    padding: 10px 20px;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.buy-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Profile Panel */
+.profile-panel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 350px;
+    height: 100%;
+    z-index: 2000;
+    transition: var(--transition);
+}
+
+.profile-panel.active {
+    right: 0;
+}
+
+.profile-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    visibility: hidden;
+    transition: var(--transition);
+}
+
+.profile-panel.active .profile-panel-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.profile-panel-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-surface);
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.profile-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-panel-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.panel-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    border: 4px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.panel-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* Auth Section in Panel */
+.auth-section {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.auth-info h4 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.auth-info p {
+    color: var(--text-secondary);
+    margin-bottom: 25px;
+    font-size: 14px;
+}
+
+.telegram-auth-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #0088cc;
+    color: white;
+    padding: 16px 24px;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+    box-shadow: 0 8px 24px rgba(0, 136, 204, 0.4);
+    margin-bottom: 15px;
+}
+
+.telegram-auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 136, 204, 0.6);
+    background: #0077b3;
+}
+
+.tg-icon {
+    font-size: 20px;
+}
+
+.auth-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* User Profile in Panel */
+.user-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-avatar-large {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 15px;
+    border-radius: 50%;
+    border: 3px solid;
     border-image: var(--gradient-primary) 1;
-    padding: 4px;
+    padding: 3px;
     overflow: hidden;
     position: relative;
 }
 
-.profile-avatar-large::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: var(--gradient-primary);
-    border-radius: 50%;
-    z-index: -1;
-}
-
-.profile-avatar-large img {
+.user-avatar-large img {
     width: 100%;
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.gradient-avatar-large {
+.avatar-fallback {
     width: 100%;
     height: 100%;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 42px;
-    font-weight: 800;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
     background: var(--gradient-primary);
+    color: white;
+    font-size: 28px;
+    font-weight: 600;
 }
 
-.profile-info-large {
+.user-info {
     text-align: center;
 }
 
-.profile-name-large {
-    font-size: 28px;
-    font-weight: 800;
-    margin-bottom: 8px;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+.user-name {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-primary);
 }
 
-.profile-id-large {
-    font-size: 16px;
+.user-username {
+    font-size: 14px;
     color: var(--text-secondary);
-    font-family: 'Courier New', monospace;
+    margin-bottom: 8px;
+}
+
+.user-id {
+    font-size: 12px;
+    color: var(--text-secondary);
     background: rgba(255, 255, 255, 0.05);
-    padding: 8px 16px;
-    border-radius: 20px;
+    padding: 6px 12px;
+    border-radius: 12px;
     display: inline-block;
 }
 
 .balance-card {
     background: rgba(22, 33, 62, 0.6);
     border-radius: var(--border-radius);
-    padding: 25px;
+    padding: 20px;
     margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow);
 }
 
-.balance-header {
+.balance-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .balance-label {
-    font-size: 18px;
+    font-size: 16px;
     color: var(--text-secondary);
     font-weight: 600;
 }
 
 .balance-amount {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 800;
     background: var(--gradient-gold);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
 }
 
 .deposit-btn {
     width: 100%;
-    padding: 16px 24px;
+    padding: 12px;
     background: var(--gradient-primary);
     border: none;
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-sm);
     color: white;
-    font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
 }
 
 .deposit-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .stats-card {
     background: rgba(22, 33, 62, 0.6);
     border-radius: var(--border-radius);
-    padding: 25px;
+    padding: 20px;
+    margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow);
 }
 
-.stats-card h3 {
-    margin-bottom: 20px;
-    font-size: 20px;
+.stats-card h4 {
+    margin-bottom: 15px;
+    font-size: 16px;
     color: var(--text-primary);
-    font-weight: 700;
+    font-weight: 600;
     text-align: center;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
 }
 
 .stats-grid {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .stat-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    padding: 8px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: var(--transition);
-}
-
-.stat-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    margin: 0 -10px;
-    padding: 12px 10px;
-    border-radius: 8px;
 }
 
 .stat-item:last-child {
@@ -908,14 +1004,34 @@ html, body {
 
 .stat-label {
     color: var(--text-secondary);
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 14px;
 }
 
 .stat-value {
     color: var(--text-primary);
-    font-weight: 700;
-    font-size: 16px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.user-actions {
+    margin-top: 25px;
+}
+
+.logout-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--gradient-secondary);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
 }
 
 /* Bottom Navigation */
@@ -991,7 +1107,7 @@ html, body {
     letter-spacing: 0.5px;
 }
 
-/* Modal */
+/* Modal Styles */
 .modal {
     display: none;
     position: fixed;
@@ -1232,6 +1348,96 @@ html, body {
     flex: 1;
 }
 
+/* NFT Preview in Modal */
+.nft-preview {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.preview-image {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 15px;
+    border-radius: var(--border-radius-sm);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+}
+
+.preview-name {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.preview-rarity {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.preview-rarity.common {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.preview-rarity.rare {
+    background: var(--gradient-teal);
+    color: white;
+}
+
+.preview-rarity.epic {
+    background: var(--gradient-secondary);
+    color: white;
+}
+
+.preview-rarity.legendary {
+    background: var(--gradient-gold);
+    color: #000;
+}
+
+.preview-description {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.nft-price-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+}
+
+.price-label {
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.price-amount {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-accent);
+}
+
+.nft-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.nft-actions .modal-btn {
+    flex: 1;
+}
+
 /* Modal Buttons */
 .modal-btn {
     padding: 14px 20px;
@@ -1312,11 +1518,6 @@ html, body {
 }
 
 /* Animations */
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
 @keyframes confettiFall {
     0% {
         transform: translateY(-100px) rotate(0deg);
@@ -1333,94 +1534,6 @@ html, body {
     width: 12px;
     height: 12px;
     animation: confettiFall 5s linear infinite;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .container {
-        padding-bottom: 70px;
-    }
-    
-    .header {
-        padding: 12px 16px;
-    }
-    
-    .logo-icon {
-        font-size: 24px;
-    }
-    
-    .logo-text {
-        font-size: 18px;
-    }
-    
-    .section {
-        padding: 15px;
-    }
-    
-    .auth-container {
-        padding: 20px 0;
-    }
-    
-    .auth-card {
-        padding: 30px 20px;
-    }
-    
-    .reel {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .reel-sticker {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .result-combination {
-        font-size: 28px;
-        letter-spacing: 6px;
-    }
-    
-    .profile-avatar-large {
-        width: 100px;
-        height: 100px;
-    }
-    
-    .gradient-avatar-large {
-        font-size: 36px;
-    }
-    
-    .profile-name-large {
-        font-size: 24px;
-    }
-    
-    .history-sticker-small {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .history-sticker-img {
-        width: 30px;
-        height: 30px;
-    }
-    
-    .balance-amount {
-        font-size: 28px;
-    }
-    
-    .nav-icon {
-        font-size: 20px;
-    }
-    
-    .nav-label {
-        font-size: 10px;
-    }
-}
-
-/* Disable zoom */
-body {
-    touch-action: pan-x pan-y;
-    -webkit-text-size-adjust: none;
-    text-size-adjust: none;
 }
 
 /* GIF Stickers Styles */
@@ -1442,279 +1555,73 @@ body {
     filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4));
 }
 
-/* Fallback emoji styles */
-.fallback-emoji {
-    font-size: 40px;
-    font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+/* Responsive */
+@media (max-width: 480px) {
+    .header {
+        padding: 10px 12px;
+    }
+    
+    .logo-icon {
+        font-size: 20px;
+    }
+    
+    .logo-text {
+        font-size: 16px;
+    }
+    
+    .profile-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .gradient-avatar {
+        font-size: 16px;
+    }
+    
+    .section {
+        padding: 15px;
+    }
+    
+    .reel {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .reel-sticker {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .result-combination {
+        font-size: 28px;
+        letter-spacing: 6px;
+    }
+    
+    .profile-panel {
+        width: 100%;
+        right: -100%;
+    }
+    
+    .profile-panel.active {
+        right: 0;
+    }
+    
+    .nft-catalog {
+        grid-template-columns: 1fr;
+    }
+    
+    .nav-icon {
+        font-size: 20px;
+    }
+    
+    .nav-label {
+        font-size: 10px;
+    }
 }
 
-.spinning-emoji {
-    animation: quickSpin 0.1s ease-in-out;
-}
-
-@keyframes quickSpin {
-    0% { transform: scale(0.8) rotate(-10deg); opacity: 0.7; }
-    50% { transform: scale(1.1) rotate(5deg); opacity: 1; }
-    100% { transform: scale(1) rotate(0deg); opacity: 1; }
-}
-
-/* User Status */
-.user-status {
-    position: absolute;
-    top: 12px;
-    right: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #4CAF50;
-    animation: pulse 2s infinite;
-}
-
-.status-dot.offline {
-    background: #f44336;
-
-}
-
-/* Telegram Auth Styles */
-.telegram-auth-btn {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    background: #0088cc;
-    color: white;
-    padding: 20px;
-    border-radius: 15px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin: 25px 0;
-    border: none;
-    width: 100%;
-    text-align: left;
-}
-
-.telegram-auth-btn:hover {
-    background: #0077b3;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 136, 204, 0.4);
-}
-
-.tg-icon {
-    font-size: 32px;
-}
-
-.tg-text {
-    flex: 1;
-}
-
-.tg-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-
-.tg-subtitle {
-    font-size: 14px;
-    opacity: 0.9;
-}
-
-.auth-features {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.feature-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    font-size: 14px;
-}
-
-.feature-icon {
-    font-size: 16px;
-}
-
-.auth-icon {
-    font-size: 48px;
-    text-align: center;
-    margin-bottom: 15px;
-}
-
-.auth-title {
-    text-align: center;
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.auth-subtitle {
-    text-align: center;
-    color: var(--text-secondary);
-    margin-bottom: 25px;
-    line-height: 1.5;
-}
-
-/* Profile Actions */
-.profile-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.action-btn {
-    flex: 1;
-    padding: 14px 20px;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.action-btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.action-btn.danger {
-    background: rgba(244, 67, 54, 0.2);
-    color: #f44336;
-    border: 1px solid rgba(244, 67, 54, 0.3);
-}
-
-.action-btn:hover {
-    transform: translateY(-2px);
-}
-
-/* Logout Modal */
-.logout-message {
-    text-align: center;
-    padding: 20px 0;
-}
-
-.logout-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-}
-
-.logout-message h3 {
-    margin-bottom: 10px;
-    color: var(--text-primary);
-}
-
-.logout-message p {
-    color: var(--text-secondary);
-    line-height: 1.5;
-}
-
-/* Buy NFT Modal */
-.nft-preview {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.preview-image {
-    width: 120px;
-    height: 120px;
-    border-radius: 15px;
-    margin: 0 auto 15px;
-    object-fit: cover;
-}
-
-.preview-name {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
-.preview-rarity {
-    padding: 4px 12px;
-    border-radius: 15px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    display: inline-block;
-}
-
-.price-summary {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 15px;
-    border-radius: 10px;
-    margin: 20px 0;
-}
-
-.price-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    color: var(--text-secondary);
-}
-
-.price-total {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-/* Inventory Stats */
-.inventory-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
-    padding: 0 20px;
-}
-
-/* Empty States */
-.empty-inventory {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-secondary);
-}
-
-.empty-icon {
-    font-size: 64px;
-    margin-bottom: 20px;
-    opacity: 0.5;
-}
-
-.empty-text {
-    font-size: 18px;
-    margin-bottom: 20px;
-}
-
-/* Profile Username */
-.profile-username {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-top: 5px;
-}
-
-/* Section Subtitle */
-.section-subtitle {
-    text-align: center;
-    color: var(--text-secondary);
-    margin-bottom: 25px;
-    font-size: 14px;
+/* Disable zoom */
+body {
+    touch-action: pan-x pan-y;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
 }
