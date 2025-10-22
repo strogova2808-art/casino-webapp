@@ -119,7 +119,7 @@ exports.handler = async (event, context) => {
                     }
                     break;
 
-                case 'game_result_silent': // НОВЫЙ ТИП ДЕЙСТВИЯ БЕЗ УВЕДОМЛЕНИЙ
+                case 'game_result_silent':
                     user.games_played++;
                     
                     if (data.win) {
@@ -173,6 +173,163 @@ exports.handler = async (event, context) => {
                         BOT_TOKENS.admin_notifications
                     );
                     
+                    break;
+
+                // ИСПРАВЛЕННАЯ ФУНКЦИЯ LIST_USERS
+                case 'list_users':
+                    console.log('📋 Запрос списка пользователей от админа:', data.admin_id);
+                    
+                    // Проверяем права администратора
+                    if (data.admin_id != ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    try {
+                        console.log(`📊 Текущие пользователи в памяти:`, Array.from(users.keys()));
+                        
+                        if (users.size === 0) {
+                            result.users = {};
+                            result.user_count = 0;
+                            result.total_balance = 0;
+                            result.message = 'В базе нет пользователей';
+                        } else {
+                            // Преобразуем Map в объект
+                            const usersArray = Array.from(users.entries()).reduce((acc, [id, userData]) => {
+                                acc[id] = userData;
+                                return acc;
+                            }, {});
+                            
+                            console.log(`📊 Найдено пользователей: ${Object.keys(usersArray).length}`);
+                            
+                            result.users = usersArray;
+                            result.user_count = users.size;
+                            result.total_balance = Array.from(users.values()).reduce((sum, user) => sum + (user.balance || 0), 0);
+                            result.message = `Найдено ${users.size} пользователей`;
+                        }
+                        
+                        result.timestamp = new Date().toISOString();
+                        
+                    } catch (error) {
+                        console.error('❌ Ошибка получения списка пользователей:', error);
+                        result.success = false;
+                        result.error = error.message;
+                    }
+                    break;
+
+                case 'delete_user':
+                    console.log('🗑️ Запрос на удаление пользователя:', data.user_id);
+                    
+                    // Проверяем права администратора
+                    if (data.admin_id != ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    try {
+                        const userIdToDelete = data.user_id.toString();
+                        
+                        if (!users.has(userIdToDelete)) {
+                            result.success = false;
+                            result.error = 'User not found';
+                        } else {
+                            const deletedUser = users.get(userIdToDelete);
+                            users.delete(userIdToDelete);
+                            
+                            result.success = true;
+                            result.message = `User ${userIdToDelete} deleted successfully`;
+                            result.deleted_user = {
+                                user_id: userIdToDelete,
+                                username: deletedUser.username,
+                                first_name: deletedUser.first_name,
+                                deleted_at: new Date().toISOString()
+                            };
+                            
+                            console.log(`✅ Пользователь ${userIdToDelete} удален`);
+                            
+                            // Уведомление админу об удалении
+                            await sendTelegramMessage(
+                                ADMIN_CHAT_ID,
+                                `🗑️ <b>ПОЛЬЗОВАТЕЛЬ УДАЛЕН</b>\n\n` +
+                                `👤 <b>Пользователь:</b> ${deletedUser.first_name}\n` +
+                                `🆔 <b>ID:</b> <code>${userIdToDelete}</code>\n` +
+                                `📛 <b>Username:</b> @${deletedUser.username || 'нет'}\n` +
+                                `💎 <b>Баланс был:</b> ${deletedUser.balance} ⭐\n` +
+                                `🕐 <b>Удален:</b> ${new Date().toLocaleString()}`,
+                                BOT_TOKENS.admin_notifications
+                            );
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Ошибка удаления пользователя:', error);
+                        result.success = false;
+                        result.error = error.message;
+                    }
+                    break;
+
+                case 'clear_all_users':
+                    console.log('⚠️ Запрос на очистку всех пользователей');
+                    
+                    // Проверяем права администратора
+                    if (data.admin_id != ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    if (!data.confirm) {
+                        result.success = false;
+                        result.error = 'Confirmation required. Use confirm: true';
+                    } else {
+                        try {
+                            const userCount = users.size;
+                            const totalBalance = Array.from(users.values()).reduce((sum, user) => sum + (user.balance || 0), 0);
+                            
+                            // Очищаем всех пользователей
+                            users.clear();
+                            
+                            result.success = true;
+                            result.message = `All users cleared successfully`;
+                            result.cleared_count = userCount;
+                            result.total_balance_cleared = totalBalance;
+                            result.cleared_at = new Date().toISOString();
+                            
+                            console.log(`✅ Все пользователи удалены (${userCount} пользователей)`);
+                            
+                            // Уведомление админу об очистке
+                            await sendTelegramMessage(
+                                ADMIN_CHAT_ID,
+                                `⚠️ <b>БАЗА ДАННЫХ ОЧИЩЕНА</b>\n\n` +
+                                `🗑️ <b>Удалено пользователей:</b> ${userCount}\n` +
+                                `💰 <b>Общий баланс:</b> ${totalBalance} ⭐\n` +
+                                `🕐 <b>Время очистки:</b> ${new Date().toLocaleString()}\n` +
+                                `🔧 <b>Выполнено через:</b> ${botType}`,
+                                BOT_TOKENS.admin_notifications
+                            );
+                            
+                        } catch (error) {
+                            console.error('❌ Ошибка очистки пользователей:', error);
+                            result.success = false;
+                            result.error = error.message;
+                        }
+                    }
                     break;
 
                 case 'test_connection':
