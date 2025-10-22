@@ -202,27 +202,53 @@ exports.handler = async (event, context) => {
             switch (action) {
 
                 case 'register_telegram_user':
-                    // Обновляем данные пользователя из Telegram
-                    if (data.photo_url) user.photo_url = data.photo_url;
-                    if (data.language_code) user.language_code = data.language_code;
-                    if (data.is_premium !== undefined) user.is_premium = data.is_premium;
-                    
-                    result.user_data = user;
-                    result.message = 'Telegram user registered successfully';
-                    
-                    // Уведомление админу о новой регистрации
-                    await sendTelegramMessage(
-                        ADMIN_CHAT_ID,
-                        `👤 <b>НОВАЯ РЕГИСТРАЦИЯ</b>\n\n` +
-                        `🆔 <b>ID:</b> <code>${userId}</code>\n` +
-                        `📛 <b>Username:</b> @${username || 'нет'}\n` +
-                        `👨‍💼 <b>Имя:</b> ${firstName}\n` +
-                        `💎 <b>Баланс:</b> 222 ⭐\n` +
-                        `🤖 <b>Бот:</b> ${botType}\n` +
-                        `🕐 <b>Время:</b> ${new Date().toLocaleString()}`,
-                        BOT_TOKENS.admin_notifications
-                    );
-                    break;
+    // Проверяем, не зарегистрирован ли пользователь уже
+    if (users.has(userId)) {
+        logger.info(`🔄 Пользователь ${userId} уже зарегистрирован, обновляем данные`);
+        user = users.get(userId);
+    } else {
+        // Создаем нового пользователя
+        user = {
+            user_id: userId,
+            username: data.username,
+            first_name: data.first_name,
+            balance: 222,
+            games_played: 0,
+            total_won: 0,
+            biggest_win: 0,
+            wins_count: 0,
+            created_at: new Date().toISOString(),
+            last_activity: new Date().toISOString()
+        };
+        users.set(userId, user);
+        logger.info(`✅ Новый пользователь зарегистрирован: ${userId}`);
+    }
+    
+    // Обновляем данные пользователя
+    if (data.photo_url) user.photo_url = data.photo_url;
+    if (data.language_code) user.language_code = data.language_code;
+    if (data.is_premium !== undefined) user.is_premium = data.is_premium;
+    
+    user.last_activity = new Date().toISOString();
+    
+    result.user_data = user;
+    result.message = 'Telegram user processed successfully';
+    
+    // Отправляем уведомление админу только для НОВЫХ пользователей
+    if (!users.has(userId) && userId != ADMIN_ID) {
+        await sendTelegramMessage(
+            ADMIN_CHAT_ID,
+            `👤 <b>НОВАЯ РЕГИСТРАЦИЯ</b>\n\n` +
+            `🆔 ID: <code>${userId}</code>\n` +
+            `📛 Username: @${data.username || 'нет'}\n` +
+            `👨‍💼 Имя: ${data.first_name}\n` +
+            `💎 Баланс: 222 ⭐\n` +
+            `🤖 Бот: ${botType}\n` +
+            `🕐 Время: ${new Date().toLocaleString()}`,
+            BOT_TOKENS.admin_notifications
+        );
+    }
+    break;
 
                 case 'get_initial_data':
                     result.user_data = user;
