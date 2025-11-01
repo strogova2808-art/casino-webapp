@@ -19,6 +19,34 @@ class CasinoApp {
         this.isLoggedIn = false;
         this.selectedNft = null;
         
+        // Free Lootbox
+        this.freeLootboxEnabled = false;
+        this.lootboxPrizesRemaining = 0;
+        this.lootboxCooldown = 10;
+        this.lootboxLastSpin = 0;
+        this.lootboxTimer = null;
+        
+        // Miner Game
+        this.minerGame = {
+            bombCount: 1,
+            betAmount: 10,
+            gameState: 'idle',
+            board: [],
+            revealedCells: [],
+            bombs: []
+        };
+        
+        // Crypto Bot Integration
+        this.depositAmounts = [
+            { usd: 1, stars: 100 },
+            { usd: 5, stars: 550 },
+            { usd: 10, stars: 1200 },
+            { usd: 25, stars: 3500 },
+            { usd: 50, stars: 7500 },
+            { usd: 100, stars: 16000 }
+        ];
+        this.selectedCryptoAmount = 0;
+        
         // Правильные призы за 3 одинаковых стикера
         this.prizesConfig = {
             3: {
@@ -186,6 +214,8 @@ class CasinoApp {
         this.updateHistory();
         this.setInitialStickers();
         this.renderNFTCatalog();
+        this.initMinerGame();
+        this.updateLootboxInfo();
         
         console.log('✅ CasinoApp инициализирован');
     }
@@ -247,7 +277,7 @@ class CasinoApp {
                 language_code: tgUser.language_code || 'ru',
                 is_premium: tgUser.is_premium || false,
                 photo_url: tgUser.photo_url || '',
-                balance: 222,
+                balance: 0, // НАЧАЛЬНЫЙ БАЛАНС 0
                 games_played: 0,
                 total_won: 0,
                 biggest_win: 0,
@@ -255,7 +285,10 @@ class CasinoApp {
                 inventory: [],
                 transactions: [],
                 registered_at: new Date().toISOString(),
-                last_login: new Date().toISOString()
+                last_login: new Date().toISOString(),
+                free_spins_used: 0,
+                miner_games_played: 0,
+                miner_total_won: 0
             };
 
             this.saveUserToLocalStorage(userData);
@@ -336,6 +369,10 @@ class CasinoApp {
     showWelcomeInterface() {
         document.getElementById('welcome-section').classList.add('active');
         document.getElementById('casino-section').classList.remove('active');
+        document.getElementById('lootbox-section').classList.remove('active');
+        document.getElementById('miner-section').classList.remove('active');
+        document.getElementById('market-section').classList.remove('active');
+        document.getElementById('history-section').classList.remove('active');
         document.getElementById('authSection').style.display = 'block';
         document.getElementById('userProfile').style.display = 'none';
         this.isLoggedIn = false;
@@ -344,6 +381,10 @@ class CasinoApp {
     showCasinoInterface() {
         document.getElementById('welcome-section').classList.remove('active');
         document.getElementById('casino-section').classList.add('active');
+        document.getElementById('lootbox-section').classList.remove('active');
+        document.getElementById('miner-section').classList.remove('active');
+        document.getElementById('market-section').classList.remove('active');
+        document.getElementById('history-section').classList.remove('active');
         document.getElementById('authSection').style.display = 'none';
         document.getElementById('userProfile').style.display = 'block';
         this.isLoggedIn = true;
@@ -398,7 +439,6 @@ class CasinoApp {
         this.showWelcomeInterface();
     }
 
-    // ОСТАЛЬНЫЕ ФУНКЦИИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ
     saveUserToLocalStorage(userData) {
         try {
             localStorage.setItem('casino_user', JSON.stringify(userData));
@@ -438,29 +478,592 @@ class CasinoApp {
         }
     }
 
-    // NFT МАРКЕТПЛЕЙС
+    // FREE LOOTBOX ФУНКЦИИ
+    async updateLootboxInfo() {
+        try {
+            const data = {
+                action: 'get_initial_data',
+                user_id: this.userId,
+                bot_type: this.currentBot
+            };
+
+            const result = await this.sendToNetlify(data);
+            
+            if (result.success) {
+                this.freeLootboxEnabled = result.free_lootbox_enabled;
+                this.lootboxPrizesRemaining = result.lootbox_prizes_remaining;
+                this.lootboxCooldown = result.lootbox_cooldown;
+                
+                this.renderLootboxInfo();
+            }
+        } catch (error) {
+            console.error('❌ Ошибка получения информации о лудке:', error);
+        }
+    }
+
+    renderLootboxInfo() {
+        const statusElement = document.getElementById('lootboxStatus');
+        const prizesElement = document.getElementById('lootboxPrizes');
+        const cooldownElement = document.getElementById('lootboxCooldown');
+        const spinBtn = document.getElementById('lootboxSpinBtn');
+        
+        if (statusElement) {
+            if (this.freeLootboxEnabled) {
+                statusElement.innerHTML = '🔓 <span style="color: #4CAF50;">ОТКРЫТА</span> - Крутите и выигрывайте!';
+                statusElement.style.color = '#4CAF50';
+            } else {
+                statusElement.innerHTML = '🔒 <span style="color: #f44336;">ЗАКРЫТА</span> - Ждите открытия администратором';
+                statusElement.style.color = '#f44336';
+            }
+        }
+        
+        if (prizesElement) {
+            prizesElement.textContent = `Осталось призов: ${this.lootboxPrizesRemaining}`;
+        }
+        
+        if (cooldownElement) {
+            cooldownElement.textContent = `Кулдаун: ${this.lootboxCooldown} сек`;
+        }
+        
+        if (spinBtn) {
+            spinBtn.disabled = !this.freeLootboxEnabled;
+            
+            // Обновляем таймер кулдауна
+            this.updateLootboxCooldown();
+        }
+    }
+
+    updateLootboxCooldown() {
+        const spinBtn = document.getElementById('lootboxSpinBtn');
+        if (!spinBtn) return;
+
+        const now = Date.now();
+        const timeSinceLastSpin = now - this.lootboxLastSpin;
+        const cooldownMs = this.lootboxCooldown * 1000;
+
+        if (timeSinceLastSpin < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - timeSinceLastSpin) / 1000);
+            spinBtn.disabled = true;
+            spinBtn.innerHTML = `⏰ ${remaining}сек`;
+            
+            // Обновляем каждую секунду
+            setTimeout(() => this.updateLootboxCooldown(), 1000);
+        } else {
+            spinBtn.disabled = !this.freeLootboxEnabled;
+            spinBtn.innerHTML = '🎰 Крутить Бесплатно';
+        }
+    }
+
+    async spinFreeLootbox() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
+            this.toggleProfilePanel(true);
+            return;
+        }
+
+        if (!this.freeLootboxEnabled) {
+            this.showNotification('❌ Бесплатная лудка закрыта');
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.lootboxLastSpin < this.lootboxCooldown * 1000) {
+            const remaining = Math.ceil((this.lootboxCooldown * 1000 - (now - this.lootboxLastSpin)) / 1000);
+            this.showNotification(`⏰ Подождите ${remaining} секунд до следующей прокрутки`);
+            return;
+        }
+
+        try {
+            const data = {
+                action: 'free_lootbox_spin',
+                user_id: this.userId,
+                bot_type: this.currentBot
+            };
+
+            const result = await this.sendToNetlify(data);
+            
+            if (result.success) {
+                this.lootboxLastSpin = now;
+                this.freeLootboxEnabled = result.free_lootbox_enabled;
+                this.lootboxPrizesRemaining = result.prizes_remaining;
+                
+                // Показываем результат прокрутки
+                this.showLootboxResult(result);
+                
+                if (result.win) {
+                    this.userBalance = result.user_data.balance;
+                    this.updateUserDisplay();
+                    this.showNotification(`🎉 Вы выиграли ${result.prize.name} за ${result.prize.value} ⭐!`);
+                }
+                
+                this.renderLootboxInfo();
+            } else {
+                this.showNotification('❌ ' + (result.error || 'Ошибка прокрутки'));
+            }
+        } catch (error) {
+            console.error('❌ Ошибка прокрутки лудки:', error);
+            this.showNotification('❌ Ошибка при прокрутке');
+        }
+    }
+
+    showLootboxResult(result) {
+        const modal = document.getElementById('lootboxModal');
+        const resultElement = document.getElementById('lootboxResult');
+        
+        if (modal && resultElement) {
+            // Анимация прокрутки
+            this.animateLootboxSpin(result.spin_result).then(() => {
+                resultElement.innerHTML = `
+                    <div class="lootbox-final-result">
+                        <div class="lootbox-reels-final">
+                            ${result.spin_result.map(symbol => `
+                                <div class="lootbox-symbol-final ${symbol}">
+                                    <img src="./lootbox/${symbol}.png" alt="${symbol}">
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${result.win ? `
+                            <div class="lootbox-win-message">
+                                <h3>🎉 ПОБЕДА!</h3>
+                                <p>Вы выиграли: <strong>${result.prize.name}</strong></p>
+                                <p class="prize-value">💎 ${result.prize.value} ⭐</p>
+                                <div class="win-celebration">✨ 🎊 ✨</div>
+                            </div>
+                        ` : `
+                            <div class="lootbox-lose-message">
+                                <h3>😔 Повезет в следующий раз!</h3>
+                                <p>Продолжайте крутить для выигрыша</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+            });
+            
+            modal.style.display = 'block';
+        }
+    }
+
+    async animateLootboxSpin(finalResult) {
+        const reelsContainer = document.getElementById('lootboxReels');
+        if (!reelsContainer) return;
+
+        const symbols = ['lemon', 'cherry', 'bar', 'seven'];
+        const spinDuration = 2000; // 2 seconds
+        const startTime = Date.now();
+
+        // Анимация прокрутки
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / spinDuration, 1);
+
+            // Случайные символы во время прокрутки
+            reelsContainer.innerHTML = `
+                ${[0, 1, 2].map(() => `
+                    <div class="lootbox-symbol spinning">
+                        <img src="./lootbox/${symbols[Math.floor(Math.random() * symbols.length)]}.png" alt="spin">
+                    </div>
+                `).join('')}
+            `;
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                // Финальный результат
+                reelsContainer.innerHTML = `
+                    ${finalResult.map(symbol => `
+                        <div class="lootbox-symbol ${symbol}">
+                            <img src="./lootbox/${symbol}.png" alt="${symbol}">
+                        </div>
+                    `).join('')}
+                `;
+            }
+        };
+
+        animate();
+    }
+
+    closeLootboxModal() {
+        document.getElementById('lootboxModal').style.display = 'none';
+    }
+
+    // MINER GAME ФУНКЦИИ
+    initMinerGame() {
+        this.minerGame = {
+            bombCount: 1,
+            betAmount: 10,
+            gameState: 'idle',
+            board: Array(9).fill(null),
+            revealedCells: [],
+            bombs: []
+        };
+        this.renderMinerBoard();
+        this.updateMinerInfo();
+    }
+
+    setMinerBombCount(count) {
+        this.minerGame.bombCount = count;
+        document.querySelectorAll('.bomb-option').forEach(option => {
+            option.classList.toggle('active', parseInt(option.dataset.bombs) === count);
+        });
+        
+        const multiplier = this.getMinerMultiplier(count);
+        document.getElementById('minerMultiplier').textContent = `x${multiplier}`;
+    }
+
+    setMinerBetAmount(amount) {
+        this.minerGame.betAmount = amount;
+        document.getElementById('minerBetAmount').textContent = amount + ' ⭐';
+        
+        document.querySelectorAll('.bet-option-miner').forEach(option => {
+            option.classList.toggle('active', parseInt(option.textContent) === amount);
+        });
+    }
+
+    getMinerMultiplier(bombCount) {
+        const multipliers = { 1: 2, 2: 3, 3: 4 };
+        return multipliers[bombCount] || 2;
+    }
+
+    renderMinerBoard() {
+        const boardElement = document.getElementById('minerBoard');
+        if (!boardElement) return;
+
+        boardElement.innerHTML = '';
+        
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'miner-cell';
+            cell.dataset.index = i;
+            cell.innerHTML = '❓';
+            cell.onclick = () => this.handleMinerCellClick(i);
+            boardElement.appendChild(cell);
+        }
+    }
+
+    handleMinerCellClick(index) {
+        if (this.minerGame.gameState !== 'playing') return;
+        if (this.minerGame.revealedCells.includes(index)) return;
+
+        this.minerGame.revealedCells.push(index);
+        
+        const cellElement = document.querySelector(`.miner-cell[data-index="${index}"]`);
+        
+        if (this.minerGame.bombs.includes(index)) {
+            // Бомба - проигрыш
+            cellElement.innerHTML = '💥';
+            cellElement.className = 'miner-cell bomb';
+            this.minerGame.gameState = 'lost';
+            this.showNotification('💥 Вы наткнулись на бомбу!');
+            this.revealAllCells();
+        } else {
+            // Без бомбы - продолжаем
+            cellElement.innerHTML = '💰';
+            cellElement.className = 'miner-cell revealed';
+            
+            // Проверяем выигрыш
+            const unrevealedSafeCells = 9 - this.minerGame.bombCount - this.minerGame.revealedCells.length;
+            if (unrevealedSafeCells === 0) {
+                this.minerGame.gameState = 'won';
+                this.processMinerWin();
+            }
+        }
+    }
+
+    async playMinerGame() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
+            this.toggleProfilePanel(true);
+            return;
+        }
+
+        if (this.userBalance < this.minerGame.betAmount) {
+            this.showNotification('❌ Недостаточно звезд для ставки');
+            return;
+        }
+
+        if (this.minerGame.gameState === 'playing') {
+            this.showNotification('⚠️ Игра уже идет!');
+            return;
+        }
+
+        // Генерируем бомбы
+        this.minerGame.bombs = [];
+        while (this.minerGame.bombs.length < this.minerGame.bombCount) {
+            const pos = Math.floor(Math.random() * 9);
+            if (!this.minerGame.bombs.includes(pos)) {
+                this.minerGame.bombs.push(pos);
+            }
+        }
+
+        this.minerGame.revealedCells = [];
+        this.minerGame.gameState = 'playing';
+        this.renderMinerBoard();
+        
+        this.showNotification('🎯 Игра началась! Выбирайте клетки...');
+    }
+
+    async processMinerWin() {
+        const multiplier = this.getMinerMultiplier(this.minerGame.bombCount);
+        const winAmount = this.minerGame.betAmount * multiplier;
+
+        try {
+            const data = {
+                action: 'miner_game',
+                user_id: this.userId,
+                bomb_count: this.minerGame.bombCount,
+                bet_amount: this.minerGame.betAmount,
+                bot_type: this.currentBot
+            };
+
+            const result = await this.sendToNetlify(data);
+            
+            if (result.success) {
+                this.userBalance = result.user_data.balance;
+                this.updateUserDisplay();
+                
+                if (result.win) {
+                    this.showNotification(`🎉 Вы выиграли ${winAmount} ⭐ (x${multiplier})!`);
+                    this.revealAllCells();
+                }
+            } else {
+                this.showNotification('❌ ' + (result.error || 'Ошибка игры'));
+            }
+        } catch (error) {
+            console.error('❌ Ошибка игры в минёра:', error);
+            this.showNotification('❌ Ошибка при игре');
+        }
+    }
+
+    revealAllCells() {
+        for (let i = 0; i < 9; i++) {
+            const cellElement = document.querySelector(`.miner-cell[data-index="${i}"]`);
+            if (this.minerGame.bombs.includes(i)) {
+                cellElement.innerHTML = '💥';
+                cellElement.className = 'miner-cell bomb';
+            } else {
+                cellElement.innerHTML = '💰';
+                cellElement.className = 'miner-cell revealed';
+            }
+        }
+    }
+
+    updateMinerInfo() {
+        const betAmountElement = document.getElementById('minerBetAmount');
+        const multiplierElement = document.getElementById('minerMultiplier');
+        
+        if (betAmountElement) {
+            betAmountElement.textContent = this.minerGame.betAmount + ' ⭐';
+        }
+        
+        if (multiplierElement) {
+            multiplierElement.textContent = 'x' + this.getMinerMultiplier(this.minerGame.bombCount);
+        }
+    }
+
+    // CRYPTO BOT ПОПОЛНЕНИЕ
+    showCryptoDepositModal() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
+            this.toggleProfilePanel(true);
+            return;
+        }
+
+        this.selectedCryptoAmount = 0;
+        const selectedCrypto = document.getElementById('selectedCrypto');
+        const confirmCrypto = document.getElementById('confirmCrypto');
+        const cryptoModal = document.getElementById('cryptoDepositModal');
+        
+        if (selectedCrypto) selectedCrypto.textContent = 'Выберите сумму для пополнения';
+        if (confirmCrypto) confirmCrypto.disabled = true;
+        
+        document.querySelectorAll('.crypto-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        if (cryptoModal) cryptoModal.style.display = 'block';
+    }
+
+    closeCryptoModal() {
+        document.getElementById('cryptoDepositModal').style.display = 'none';
+    }
+
+    selectCryptoAmount(amountUSD) {
+        this.selectedCryptoAmount = amountUSD;
+        
+        document.querySelectorAll('.crypto-option').forEach(option => {
+            option.classList.toggle('selected', parseInt(option.querySelector('.crypto-amount').textContent.replace('$', '')) === amountUSD);
+        });
+        
+        const selectedCrypto = document.getElementById('selectedCrypto');
+        const confirmCrypto = document.getElementById('confirmCrypto');
+        
+        const depositInfo = this.depositAmounts.find(d => d.usd === amountUSD);
+        if (selectedCrypto && depositInfo) {
+            selectedCrypto.textContent = `Выбрано: $${amountUSD} → ${depositInfo.stars} ⭐`;
+        }
+        if (confirmCrypto) confirmCrypto.disabled = false;
+    }
+
+    async processCryptoDeposit() {
+        if (!this.isLoggedIn) {
+            this.showNotification('❌ Сначала авторизуйтесь');
+            return;
+        }
+
+        if (this.selectedCryptoAmount > 0) {
+            try {
+                const data = {
+                    action: 'create_invoice',
+                    user_id: this.userId,
+                    amount: this.selectedCryptoAmount,
+                    bot_type: this.currentBot
+                };
+
+                const result = await this.sendToNetlify(data);
+                
+                if (result.success && result.invoice_url) {
+                    // Открываем ссылку на оплату
+                    window.open(result.invoice_url, '_blank');
+                    this.showNotification('📄 Чек создан! Оплатите в открывшемся окне.');
+                    this.closeCryptoModal();
+                    
+                    // Симуляция подтверждения платежа (в реальности это будет webhook от Crypto Bot)
+                    setTimeout(() => {
+                        this.simulateDepositConfirmation(this.selectedCryptoAmount);
+                    }, 5000);
+                } else {
+                    this.showNotification('❌ Ошибка создания чека');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка создания чека:', error);
+                this.showNotification('❌ Ошибка при создании чека');
+            }
+        } else {
+            this.showNotification('❌ Выберите сумму для пополнения');
+        }
+    }
+
+    async simulateDepositConfirmation(amountUSD) {
+        // В реальности это будет вызываться через webhook от Crypto Bot
+        const depositInfo = this.depositAmounts.find(d => d.usd === amountUSD);
+        if (!depositInfo) return;
+
+        try {
+            const data = {
+                action: 'confirm_deposit',
+                user_id: this.userId,
+                amount: amountUSD,
+                stars: depositInfo.stars,
+                bot_type: this.currentBot
+            };
+
+            const result = await this.sendToNetlify(data);
+            
+            if (result.success) {
+                this.userBalance = result.user_data.balance;
+                this.updateUserDisplay();
+                this.showNotification(`✅ Баланс пополнен на ${depositInfo.stars} ⭐!`);
+            }
+        } catch (error) {
+            console.error('❌ Ошибка подтверждения депозита:', error);
+        }
+    }
+
+    // NFT МАРКЕТПЛЕЙС (Portal стиль)
     renderNFTCatalog() {
         const container = document.getElementById('nftCatalog');
         if (!container) return;
 
-        container.innerHTML = Object.values(this.nftCatalog).map(nft => `
-            <div class="nft-card">
-                <div class="nft-badge ${nft.rarity}">${nft.rarity}</div>
-                <img src="${nft.image}" alt="${nft.name}" class="nft-image">
-                <div class="nft-info">
-                    <div class="nft-name">${nft.name}</div>
-                    <div class="nft-description">${nft.description}</div>
-                    <div class="nft-creator">Создатель: ${nft.creator}</div>
-                    <div class="nft-supply">Осталось: ${nft.supply - nft.sold}/${nft.supply}</div>
-                    <div class="nft-price">
-                        <span class="price-amount">${nft.price} ⭐</span>
-                        <button class="buy-btn" onclick="casino.showBuyModal('${nft.id}')">
-                            Купить
-                        </button>
+        container.innerHTML = `
+            <div class="nft-market-header">
+                <h3>🎨 NFT Коллекция</h3>
+                <p>Уникальные цифровые активы с анимацией</p>
+            </div>
+            <div class="nft-grid">
+                ${Object.values(this.nftCatalog).map(nft => `
+                    <div class="nft-card-portal">
+                        <div class="nft-card-inner">
+                            <div class="nft-image-container">
+                                <img src="${nft.image}" alt="${nft.name}" class="nft-image-animated">
+                                <div class="nft-overlay">
+                                    <div class="nft-badge ${nft.rarity}">${nft.rarity}</div>
+                                    <div class="nft-actions">
+                                        <button class="nft-preview-btn" onclick="casino.showNFTPreview('${nft.id}')">
+                                            👁️ Preview
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="nft-info-portal">
+                                <h4 class="nft-name-glow">${nft.name}</h4>
+                                <p class="nft-description">${nft.description}</p>
+                                <div class="nft-stats">
+                                    <div class="nft-stat">
+                                        <span>Creator:</span>
+                                        <span>${nft.creator}</span>
+                                    </div>
+                                    <div class="nft-stat">
+                                        <span>Supply:</span>
+                                        <span>${nft.supply - nft.sold}/${nft.supply}</span>
+                                    </div>
+                                    <div class="nft-stat">
+                                        <span>Type:</span>
+                                        <span>${nft.type}</span>
+                                    </div>
+                                </div>
+                                <div class="nft-price-section">
+                                    <div class="nft-price-glow">${nft.price} ⭐</div>
+                                    <button class="buy-btn-portal" onclick="casino.showBuyModal('${nft.id}')">
+                                        BUY NOW
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    showNFTPreview(nftId) {
+        const nft = Object.values(this.nftCatalog).find(n => n.id === nftId);
+        if (!nft) return;
+
+        const modal = document.getElementById('nftPreviewModal');
+        const preview = document.getElementById('nftPreviewContent');
+        
+        if (modal && preview) {
+            preview.innerHTML = `
+                <div class="nft-preview-large">
+                    <img src="${nft.image}" alt="${nft.name}" class="preview-image-large">
+                    <div class="preview-info">
+                        <h3>${nft.name}</h3>
+                        <div class="preview-rarity ${nft.rarity}">${nft.rarity}</div>
+                        <p class="preview-description">${nft.description}</p>
+                        <div class="preview-stats">
+                            <div class="preview-stat">
+                                <span>Creator:</span>
+                                <span>${nft.creator}</span>
+                            </div>
+                            <div class="preview-stat">
+                                <span>Supply:</span>
+                                <span>${nft.supply - nft.sold}/${nft.supply}</span>
+                            </div>
+                            <div class="preview-stat">
+                                <span>Type:</span>
+                                <span>${nft.type}</span>
+                            </div>
+                        </div>
+                        <div class="preview-price">${nft.price} ⭐</div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+            modal.style.display = 'block';
+        }
+    }
+
+    closeNFTPreview() {
+        document.getElementById('nftPreviewModal').style.display = 'none';
     }
 
     showBuyModal(nftId) {
@@ -479,10 +1082,16 @@ class CasinoApp {
         const preview = document.getElementById('nftPreview');
         
         preview.innerHTML = `
-            <img src="${nft.image}" alt="${nft.name}" class="preview-image">
-            <div class="preview-name">${nft.name}</div>
-            <div class="preview-rarity ${nft.rarity}">${nft.rarity}</div>
-            <div class="preview-description">${nft.description}</div>
+            <div class="nft-preview-buy">
+                <img src="${nft.image}" alt="${nft.name}" class="preview-image-buy">
+                <div class="preview-details">
+                    <div class="preview-name">${nft.name}</div>
+                    <div class="preview-rarity ${nft.rarity}">${nft.rarity}</div>
+                    <div class="preview-description">${nft.description}</div>
+                    <div class="preview-creator">Creator: ${nft.creator}</div>
+                    <div class="preview-supply">Supply: ${nft.supply - nft.sold}/${nft.supply}</div>
+                </div>
+            </div>
         `;
 
         document.getElementById('nftPrice').textContent = nft.price + ' ⭐';
@@ -644,8 +1253,121 @@ class CasinoApp {
         }
     }
 
-    // ОСТАЛЬНЫЕ МЕТОДЫ (animateReels, checkWin, updateReelSticker и т.д.)
-    // ... остальной код без изменений
+    async animateReels(spinDuration = 2000) {
+        const reels = [1, 2, 3];
+        const stickers = [];
+
+        reels.forEach(reel => {
+            const reelElement = document.getElementById(`reel${reel}`);
+            if (reelElement) {
+                reelElement.classList.add('spinning');
+                this.animateReelSpinning(reel, spinDuration);
+            }
+        });
+
+        await this.sleep(spinDuration);
+
+        for (let i = 0; i < reels.length; i++) {
+            const reelNumber = reels[i];
+            const reelElement = document.getElementById(`reel${reelNumber}`);
+            if (reelElement) {
+                reelElement.classList.remove('spinning');
+            }
+            
+            const sticker = this.getWeightedRandomSticker(this.currentBet);
+            stickers.push(sticker);
+            this.updateReelSticker(reelNumber, sticker);
+            
+            if (i < reels.length - 1) {
+                await this.sleep(300);
+            }
+        }
+
+        return stickers;
+    }
+
+    async animateReelSpinning(reelNumber, spinDuration) {
+        const changeInterval = 100;
+        const changes = spinDuration / changeInterval;
+        
+        for (let i = 0; i < changes; i++) {
+            const reelElement = document.getElementById(`reel${reelNumber}`);
+            if (!reelElement || !reelElement.classList.contains('spinning')) {
+                break;
+            }
+            
+            const availableStickers = Object.keys(this.weights[this.currentBet]);
+            const randomSticker = availableStickers[Math.floor(Math.random() * availableStickers.length)];
+            this.updateReelStickerQuick(reelNumber, randomSticker);
+            await this.sleep(changeInterval);
+        }
+    }
+
+    checkWin(spinResult) {
+        const firstSticker = spinResult[0];
+        if (spinResult.every(sticker => sticker === firstSticker)) {
+            const prizeConfig = this.prizesConfig[this.currentBet][firstSticker];
+            if (prizeConfig) {
+                return {
+                    name: prizeConfig.name,
+                    value: prizeConfig.value,
+                    sticker: firstSticker
+                };
+            }
+        }
+        return null;
+    }
+
+    addToHistory(win, prize = null, betAmount = 0) {
+        const now = new Date();
+        const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+        const historyItem = { win, time, betAmount };
+        if (win && prize) {
+            historyItem.prizeName = prize.name;
+            historyItem.prizeSticker = prize.sticker;
+            historyItem.prizeValue = prize.value;
+        }
+
+        this.gameHistory.push(historyItem);
+        if (this.gameHistory.length > 50) this.gameHistory = this.gameHistory.slice(-50);
+        this.updateHistory();
+    }
+
+    updateHistory() {
+        const historyList = document.getElementById('historyList');
+        if (!historyList) return;
+        
+        if (this.gameHistory.length === 0) {
+            historyList.innerHTML = '<div class="history-empty">Пока нет истории игр</div>';
+            return;
+        }
+
+        historyList.innerHTML = this.gameHistory.slice(-10).reverse().map(game => `
+            <div class="history-item ${game.win ? 'history-win' : 'history-loss'}">
+                <div class="history-content">
+                    ${game.win ? `
+                        <div class="history-info">
+                            <div class="history-prize-name">${game.prizeName}</div>
+                            <div class="history-prize-value">+${game.prizeValue} ⭐</div>
+                        </div>
+                        <div class="history-sticker-small">
+                            <img src="${this.stickerPaths[game.prizeSticker]}" alt="${game.prizeName}" class="history-sticker-img">
+                        </div>
+                    ` : `
+                        <div class="history-info">
+                            <div class="history-loss-text">❌ Проигрыш</div>
+                            <div class="history-loss-amount">-${game.betAmount} ⭐</div>
+                        </div>
+                        <div class="history-sticker-small">
+                            <div class="loss-icon">🎰</div>
+                        </div>
+                    `}
+                </div>
+                <div class="history-time">${game.time}</div>
+            </div>
+        `).join('');
+    }
 
     // СЕТЕВЫЕ ФУНКЦИИ
     async sendToNetlify(data) {
@@ -808,7 +1530,15 @@ class CasinoApp {
     }
 
     showProxyBanner() {
-        // ... код баннера
+        const banner = document.createElement('div');
+        banner.className = 'proxy-banner';
+        banner.innerHTML = `
+            <div class="proxy-banner-content">
+                <span class="proxy-icon">🔧</span>
+                <span class="proxy-text">Консоль-бот @consoltotka_bot</span>
+            </div>
+        `;
+        document.body.prepend(banner);
     }
 
     async preloadStickers() {
@@ -834,8 +1564,6 @@ class CasinoApp {
         this.stickersLoaded = true;
         console.log('✅ Все GIF стикеры загружены');
     }
-
-    // ... остальные методы без изменений
 
     setupEventListeners() {
         document.addEventListener('gesturestart', function(e) {
@@ -935,132 +1663,43 @@ class CasinoApp {
         return Object.keys(weights)[0];
     }
 
-    async animateReels(spinDuration = 2000) {
-        const reels = [1, 2, 3];
-        const stickers = [];
-
-        reels.forEach(reel => {
-            const reelElement = document.getElementById(`reel${reel}`);
-            if (reelElement) {
-                reelElement.classList.add('spinning');
-                this.animateReelSpinning(reel, spinDuration);
-            }
-        });
-
-        await this.sleep(spinDuration);
-
-        for (let i = 0; i < reels.length; i++) {
-            const reelNumber = reels[i];
-            const reelElement = document.getElementById(`reel${reelNumber}`);
-            if (reelElement) {
-                reelElement.classList.remove('spinning');
-            }
-            
-            const sticker = this.getWeightedRandomSticker(this.currentBet);
-            stickers.push(sticker);
-            this.updateReelSticker(reelNumber, sticker);
-            
-            if (i < reels.length - 1) {
-                await this.sleep(300);
-            }
-        }
-
-        return stickers;
-    }
-
-    async animateReelSpinning(reelNumber, spinDuration) {
-        const changeInterval = 100;
-        const changes = spinDuration / changeInterval;
-        
-        for (let i = 0; i < changes; i++) {
-            const reelElement = document.getElementById(`reel${reelNumber}`);
-            if (!reelElement || !reelElement.classList.contains('spinning')) {
-                break;
-            }
-            
-            const availableStickers = Object.keys(this.weights[this.currentBet]);
-            const randomSticker = availableStickers[Math.floor(Math.random() * availableStickers.length)];
-            this.updateReelStickerQuick(reelNumber, randomSticker);
-            await this.sleep(changeInterval);
-        }
-    }
-
-    checkWin(spinResult) {
-        const firstSticker = spinResult[0];
-        if (spinResult.every(sticker => sticker === firstSticker)) {
-            const prizeConfig = this.prizesConfig[this.currentBet][firstSticker];
-            if (prizeConfig) {
-                return {
-                    name: prizeConfig.name,
-                    value: prizeConfig.value,
-                    sticker: firstSticker
-                };
-            }
-        }
-        return null;
-    }
-
-    addToHistory(win, prize = null, betAmount = 0) {
-        const now = new Date();
-        const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-
-        const historyItem = { win, time, betAmount };
-        if (win && prize) {
-            historyItem.prizeName = prize.name;
-            historyItem.prizeSticker = prize.sticker;
-            historyItem.prizeValue = prize.value;
-        }
-
-        this.gameHistory.push(historyItem);
-        if (this.gameHistory.length > 50) this.gameHistory = this.gameHistory.slice(-50);
-        this.updateHistory();
-    }
-
-    updateHistory() {
-        const historyList = document.getElementById('historyList');
-        if (!historyList) return;
-        
-        if (this.gameHistory.length === 0) {
-            historyList.innerHTML = '<div class="history-empty">Пока нет истории игр</div>';
+    // НАВИГАЦИЯ
+    showSection(section) {
+        if (!this.isLoggedIn && section !== 'welcome') {
+            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
+            this.toggleProfilePanel(true);
             return;
         }
 
-        historyList.innerHTML = this.gameHistory.slice(-10).reverse().map(game => `
-            <div class="history-item ${game.win ? 'history-win' : 'history-loss'}">
-                <div class="history-content">
-                    ${game.win ? `
-                        <div class="history-info">
-                            <div class="history-prize-name">${game.prizeName}</div>
-                            <div class="history-prize-value">+${game.prizeValue} ⭐</div>
-                        </div>
-                        <div class="history-sticker-small">
-                            <img src="${this.stickerPaths[game.prizeSticker]}" alt="${game.prizeName}" class="history-sticker-img">
-                        </div>
-                    ` : `
-                        <div class="history-info">
-                            <div class="history-loss-text">❌ Проигрыш</div>
-                            <div class="history-loss-amount">-${game.betAmount} ⭐</div>
-                        </div>
-                        <div class="history-sticker-small">
-                            <div class="loss-icon">🎰</div>
-                        </div>
-                    `}
-                </div>
-                <div class="history-time">${game.time}</div>
-            </div>
-        `).join('');
+        document.querySelectorAll('.section').forEach(sec => {
+            sec.classList.remove('active');
+        });
+        
+        const sectionElement = document.getElementById(section + '-section');
+        if (sectionElement) {
+            sectionElement.classList.add('active');
+        }
+        
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        const navItems = document.querySelectorAll('.nav-item');
+        const sectionIndex = ['history', 'casino', 'lootbox', 'miner', 'market'].indexOf(section);
+        if (sectionIndex !== -1 && navItems[sectionIndex]) {
+            navItems[sectionIndex].classList.add('active');
+        }
+
+        // Обновляем информацию при переключении секций
+        if (section === 'lootbox') {
+            this.updateLootboxInfo();
+        } else if (section === 'miner') {
+            this.initMinerGame();
+        }
     }
 
-    async syncWithServer() {
-        if (!this.isOnline || !this.isLoggedIn) return;
-        
-        console.log('🔄 Синхронизация с сервером...');
-        try {
-            await this.saveUserDataToDatabase();
-            this.showNotification('✅ Данные синхронизированы');
-        } catch (error) {
-            console.error('❌ Ошибка синхронизации:', error);
-        }
+    updateUI() {
+        this.updateUserDisplay();
     }
 
     formatNumber(num) {
@@ -1079,66 +1718,7 @@ class CasinoApp {
             return;
         }
 
-        this.selectedDepositAmount = 0;
-        const selectedDeposit = document.getElementById('selectedDeposit');
-        const confirmDeposit = document.getElementById('confirmDeposit');
-        const depositModal = document.getElementById('depositModal');
-        
-        if (selectedDeposit) selectedDeposit.textContent = 'Выберите сумму для пополнения';
-        if (confirmDeposit) confirmDeposit.disabled = true;
-        
-        document.querySelectorAll('.deposit-option').forEach(option => {
-            option.classList.remove('selected');
-        });
-        
-        if (depositModal) depositModal.style.display = 'block';
-    }
-
-    closeDepositModal() {
-        const depositModal = document.getElementById('depositModal');
-        if (depositModal) depositModal.style.display = 'none';
-    }
-
-    selectDeposit(amount) {
-        this.selectedDepositAmount = amount;
-        
-        document.querySelectorAll('.deposit-option').forEach(option => {
-            option.classList.toggle('selected', parseInt(option.dataset.amount) === amount);
-        });
-        
-        const selectedDeposit = document.getElementById('selectedDeposit');
-        const confirmDeposit = document.getElementById('confirmDeposit');
-        
-        if (selectedDeposit) selectedDeposit.textContent = `Выбрано: ${amount} ⭐`;
-        if (confirmDeposit) confirmDeposit.disabled = false;
-    }
-
-    processDeposit() {
-        if (!this.isLoggedIn) {
-            this.showNotification('❌ Сначала авторизуйтесь');
-            return;
-        }
-
-        if (this.selectedDepositAmount > 0) {
-            const data = {
-                action: 'deposit_request',
-                user_id: this.userId,
-                amount: this.selectedDepositAmount,
-                bot_type: this.currentBot
-            };
-            
-            console.log('💰 Отправка запроса на пополнение:', data);
-            
-            this.sendToBot(data).then(success => {
-                if (success) {
-                    this.updateUserDisplay();
-                    this.showNotification(`✅ Баланс пополнен на ${this.selectedDepositAmount} ⭐`);
-                    this.closeDepositModal();
-                }
-            });
-        } else {
-            this.showNotification('❌ Выберите сумму для пополнения');
-        }
+        this.showCryptoDepositModal();
     }
 
     showPrizeModal(prize) {
@@ -1245,36 +1825,16 @@ class CasinoApp {
         }, 5000);
     }
 
-    // НАВИГАЦИЯ
-    showSection(section) {
-        if (!this.isLoggedIn && section !== 'welcome') {
-            this.showNotification('❌ Сначала авторизуйтесь через Telegram');
-            this.toggleProfilePanel(true);
-            return;
-        }
-
-        document.querySelectorAll('.section').forEach(sec => {
-            sec.classList.remove('active');
-        });
+    async syncWithServer() {
+        if (!this.isOnline || !this.isLoggedIn) return;
         
-        const sectionElement = document.getElementById(section + '-section');
-        if (sectionElement) {
-            sectionElement.classList.add('active');
+        console.log('🔄 Синхронизация с сервером...');
+        try {
+            await this.saveUserDataToDatabase();
+            this.showNotification('✅ Данные синхронизированы');
+        } catch (error) {
+            console.error('❌ Ошибка синхронизации:', error);
         }
-        
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        const navItems = document.querySelectorAll('.nav-item');
-        const sectionIndex = ['history', 'casino', 'market'].indexOf(section);
-        if (sectionIndex !== -1 && navItems[sectionIndex]) {
-            navItems[sectionIndex].classList.add('active');
-        }
-    }
-
-    updateUI() {
-        this.updateUserDisplay();
     }
 }
 
@@ -1355,6 +1915,54 @@ function buyNFT() {
     if (casino) casino.buyNFT();
 }
 
+// Free Lootbox Functions
+function spinFreeLootbox() {
+    if (casino) casino.spinFreeLootbox();
+}
+
+function closeLootboxModal() {
+    if (casino) casino.closeLootboxModal();
+}
+
+// Miner Game Functions
+function setMinerBombs(count) {
+    if (casino) casino.setMinerBombCount(count);
+}
+
+function setMinerBet(amount) {
+    if (casino) casino.setMinerBetAmount(amount);
+}
+
+function playMinerGame() {
+    if (casino) casino.playMinerGame();
+}
+
+// Crypto Bot Functions
+function showCryptoDepositModal() {
+    if (casino) casino.showCryptoDepositModal();
+}
+
+function closeCryptoModal() {
+    document.getElementById('cryptoDepositModal').style.display = 'none';
+}
+
+function selectCryptoAmount(amount) {
+    if (casino) casino.selectCryptoAmount(amount);
+}
+
+function processCryptoDeposit() {
+    if (casino) casino.processCryptoDeposit();
+}
+
+// NFT Preview
+function showNFTPreview(nftId) {
+    if (casino) casino.showNFTPreview(nftId);
+}
+
+function closeNFTPreview() {
+    if (casino) casino.closeNFTPreview();
+}
+
 // Обработчики для свайпов
 let touchStartX = 0;
 let touchEndX = 0;
@@ -1373,7 +1981,7 @@ function handleSwipe() {
     const diff = touchStartX - touchEndX;
     
     if (Math.abs(diff) > swipeThreshold && casino && casino.isLoggedIn) {
-        const sections = ['history', 'casino', 'market'];
+        const sections = ['history', 'casino', 'lootbox', 'miner', 'market'];
         const currentSection = document.querySelector('.section.active').id.replace('-section', '');
         const currentIndex = sections.indexOf(currentSection);
         

@@ -50,16 +50,20 @@
                             <span class="feature-text">Игровые автоматы с NFT призами</span>
                         </div>
                         <div class="feature">
-                            <span class="feature-icon">🛍️</span>
-                            <span class="feature-text">NFT маркетплейс</span>
+                            <span class="feature-icon">🎰</span>
+                            <span class="feature-text">Бесплатная лудка с призами</span>
                         </div>
                         <div class="feature">
-                            <span class="feature-icon">📊</span>
-                            <span class="feature-text">Статистика и история игр</span>
+                            <span class="feature-icon">🎯</span>
+                            <span class="feature-text">Игра Минёр с множителями</span>
+                        </div>
+                        <div class="feature">
+                            <span class="feature-icon">🛍️</span>
+                            <span class="feature-text">NFT маркетплейс в стиле Portal</span>
                         </div>
                         <div class="feature">
                             <span class="feature-icon">💎</span>
-                            <span class="feature-text">Пополнение баланса</span>
+                            <span class="feature-text">Пополнение через Crypto Bot</span>
                         </div>
                     </div>
 
@@ -69,7 +73,11 @@
                     </button>
                     
                     <div class="welcome-note">
-                        После входа вы сможете играть в казино и покупать NFT
+                        После входа вы сможете играть во все игры и покупать NFT
+                    </div>
+
+                    <div class="support-info">
+                        <p>📧 Поддержка: <a href="https://t.me/luditot_support" target="_blank">@luditot_support</a></p>
                     </div>
                 </div>
             </div>
@@ -140,6 +148,120 @@
             </div>
         </div>
 
+        <!-- Free Lootbox Section -->
+        <div class="section" id="lootbox-section">
+            <div class="section-header">
+                <h2>🎰 Бесплатная Лудка</h2>
+                <div class="section-subtitle" id="lootboxStatus">Загрузка...</div>
+            </div>
+            
+            <div class="lootbox-container">
+                <div class="lootbox-machine">
+                    <div class="lootbox-display">
+                        <div class="lootbox-reels" id="lootboxReels">
+                            <div class="lootbox-symbol">
+                                <img src="./lootbox/lemon.png" alt="Lemon">
+                            </div>
+                            <div class="lootbox-symbol">
+                                <img src="./lootbox/cherry.png" alt="Cherry">
+                            </div>
+                            <div class="lootbox-symbol">
+                                <img src="./lootbox/bar.png" alt="BAR">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="lootbox-info">
+                        <div class="lootbox-prizes" id="lootboxPrizes">
+                            Осталось призов: 0
+                        </div>
+                        <div class="lootbox-cooldown" id="lootboxCooldown">
+                            Кулдаун: 10 сек
+                        </div>
+                    </div>
+                    
+                    <button class="lootbox-spin-btn" id="lootboxSpinBtn" onclick="spinFreeLootbox()">
+                        🎰 Крутить Бесплатно
+                    </button>
+
+                    <div class="lootbox-rules">
+                        <h4>🎯 Правила лудки:</h4>
+                        <ul>
+                            <li>Крутите бесплатно каждые 10 секунд</li>
+                            <li>Три семерки (7️⃣7️⃣7️⃣) = ВЫИГРЫШ ПРИЗА!</li>
+                            <li>Лудка закрывается когда все призы разыграны</li>
+                            <li>Админ устанавливает призы и их количество</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Miner Game Section -->
+        <div class="section" id="miner-section">
+            <div class="section-header">
+                <h2>🎯 Игра Минёр</h2>
+                <div class="section-subtitle">Избегайте бомб - забирайте выигрыш!</div>
+            </div>
+            
+            <div class="miner-game-container">
+                <div class="miner-settings">
+                    <div class="miner-setting">
+                        <label>Количество бомб:</label>
+                        <div class="bomb-options">
+                            <div class="bomb-option active" data-bombs="1" onclick="setMinerBombs(1)">
+                                1 бомба <span class="multiplier">x2</span>
+                            </div>
+                            <div class="bomb-option" data-bombs="2" onclick="setMinerBombs(2)">
+                                2 бомбы <span class="multiplier">x3</span>
+                            </div>
+                            <div class="bomb-option" data-bombs="3" onclick="setMinerBombs(3)">
+                                3 бомбы <span class="multiplier">x4</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="miner-setting">
+                        <label>Ставка:</label>
+                        <div class="bet-options-miner">
+                            <div class="bet-option-miner active" onclick="setMinerBet(10)">10 ⭐</div>
+                            <div class="bet-option-miner" onclick="setMinerBet(25)">25 ⭐</div>
+                            <div class="bet-option-miner" onclick="setMinerBet(50)">50 ⭐</div>
+                            <div class="bet-option-miner" onclick="setMinerBet(100)">100 ⭐</div>
+                        </div>
+                    </div>
+                    
+                    <div class="miner-info">
+                        <div class="current-bet">
+                            Текущая ставка: <span id="minerBetAmount">10</span> ⭐
+                        </div>
+                        <div class="current-multiplier">
+                            Множитель: <span id="minerMultiplier">x2</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="miner-game-board" id="minerBoard">
+                    <!-- Игровое поле 3x3 будет генерироваться через JS -->
+                </div>
+                
+                <button class="miner-play-btn" onclick="playMinerGame()">
+                    🎯 Начать игру
+                </button>
+
+                <div class="miner-rules">
+                    <h4>🎯 Правила игры:</h4>
+                    <ul>
+                        <li>Выберите количество бомб (1-3)</li>
+                        <li>Выберите ставку</li>
+                        <li>Открывайте клетки на поле 3x3</li>
+                        <li>Избегайте бомб - забирайте выигрыш!</li>
+                        <li>1 бомба = x2, 2 бомбы = x3, 3 бомбы = x4</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- History Section -->
         <div class="section" id="history-section">
             <div class="section-header">
@@ -172,6 +294,14 @@
         <div class="nav-item active" onclick="showSection('casino')">
             <div class="nav-icon">🎰</div>
             <div class="nav-label">Казино</div>
+        </div>
+        <div class="nav-item" onclick="showSection('lootbox')">
+            <div class="nav-icon">🎁</div>
+            <div class="nav-label">Лудка</div>
+        </div>
+        <div class="nav-item" onclick="showSection('miner')">
+            <div class="nav-icon">🎯</div>
+            <div class="nav-label">Минёр</div>
         </div>
         <div class="nav-item" onclick="showSection('market')">
             <div class="nav-icon">🖼️</div>
@@ -223,8 +353,8 @@
                             <span class="balance-label">Баланс</span>
                             <span class="balance-amount" id="panelBalance">0 ⭐</span>
                         </div>
-                        <button class="deposit-btn" onclick="showDepositModal()">
-                            💰 Пополнить
+                        <button class="deposit-btn" onclick="showCryptoDepositModal()">
+                            💳 Пополнить
                         </button>
                     </div>
 
@@ -248,6 +378,14 @@
                                 <span class="stat-value" id="panelRecord">0 ⭐</span>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="support-card">
+                        <h4>📧 Поддержка</h4>
+                        <p>Есть вопросы или проблемы?</p>
+                        <a href="https://t.me/luditot_support" target="_blank" class="support-link">
+                            💬 Написать в поддержку @luditot_support
+                        </a>
                     </div>
 
                     <div class="user-actions">
@@ -297,6 +435,56 @@
         </div>
     </div>
 
+    <!-- Crypto Deposit Modal -->
+    <div class="modal" id="cryptoDepositModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💳 Пополнение через Crypto Bot</h2>
+                <button class="modal-close" onclick="closeCryptoModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="crypto-info">
+                    <p>Пополнение баланса через Telegram Crypto Bot</p>
+                </div>
+                <div class="crypto-options">
+                    <div class="crypto-option" onclick="selectCryptoAmount(1)">
+                        <div class="crypto-amount">$1</div>
+                        <div class="crypto-stars">→ 100 ⭐</div>
+                    </div>
+                    <div class="crypto-option" onclick="selectCryptoAmount(5)">
+                        <div class="crypto-amount">$5</div>
+                        <div class="crypto-stars">→ 550 ⭐</div>
+                    </div>
+                    <div class="crypto-option" onclick="selectCryptoAmount(10)">
+                        <div class="crypto-amount">$10</div>
+                        <div class="crypto-stars">→ 1200 ⭐</div>
+                    </div>
+                    <div class="crypto-option" onclick="selectCryptoAmount(25)">
+                        <div class="crypto-amount">$25</div>
+                        <div class="crypto-stars">→ 3500 ⭐</div>
+                    </div>
+                    <div class="crypto-option" onclick="selectCryptoAmount(50)">
+                        <div class="crypto-amount">$50</div>
+                        <div class="crypto-stars">→ 7500 ⭐</div>
+                    </div>
+                    <div class="crypto-option" onclick="selectCryptoAmount(100)">
+                        <div class="crypto-amount">$100</div>
+                        <div class="crypto-stars">→ 16000 ⭐</div>
+                    </div>
+                </div>
+                <div class="selected-crypto" id="selectedCrypto">
+                    Выберите сумму для пополнения
+                </div>
+                <div class="crypto-actions">
+                    <button class="modal-btn secondary" onclick="closeCryptoModal()">Отмена</button>
+                    <button class="modal-btn primary" id="confirmCrypto" disabled onclick="processCryptoDeposit()">
+                        Создать чек
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Prize Modal -->
     <div class="modal" id="prizeModal">
         <div class="modal-content prize-modal">
@@ -324,6 +512,21 @@
         </div>
     </div>
 
+    <!-- Lootbox Result Modal -->
+    <div class="modal" id="lootboxModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎰 Результат Лудки</h2>
+                <button class="modal-close" onclick="closeLootboxModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="lootboxResult">
+                    <!-- Результат будет здесь -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Buy NFT Modal -->
     <div class="modal" id="buyNftModal">
         <div class="modal-content">
@@ -342,6 +545,21 @@
                 <div class="nft-actions">
                     <button class="modal-btn secondary" onclick="closeBuyModal()">Отмена</button>
                     <button class="modal-btn primary" onclick="buyNFT()">Купить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NFT Preview Modal -->
+    <div class="modal" id="nftPreviewModal">
+        <div class="modal-content nft-preview-modal">
+            <div class="modal-header">
+                <h2>👁️ Просмотр NFT</h2>
+                <button class="modal-close" onclick="closeNFTPreview()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="nftPreviewContent">
+                    <!-- NFT preview content будет здесь -->
                 </div>
             </div>
         </div>

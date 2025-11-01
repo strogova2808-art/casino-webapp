@@ -11,6 +11,20 @@ const BOT_TOKENS = {
 };
 
 const ADMIN_CHAT_ID = 1376689155;
+const SUPPORT_CHAT_ID = '@luditot_support';
+
+// Free Lootbox Settings
+let freeLootboxEnabled = false;
+let lootboxPrizes = [];
+let lootboxSpinCooldown = 10; // seconds
+let lootboxLastSpin = new Map();
+
+// Miner Game Settings
+const minerMultipliers = {
+    1: 2,
+    2: 3, 
+    3: 4
+};
 
 // Функция отправки в Telegram
 async function sendTelegramMessage(chatId, message, botToken = BOT_TOKENS.admin_notifications) {
@@ -132,6 +146,40 @@ async function broadcastMessage(message, botToken) {
     }
 }
 
+// Функция для создания чека Crypto Bot
+async function createCryptoBotInvoice(amount, userId) {
+    try {
+        // Здесь должна быть интеграция с Crypto Bot API
+        // Это пример реализации
+        const invoiceData = {
+            amount: amount,
+            currency: 'USD',
+            user_id: userId,
+            description: `Пополнение баланса в CASINO Totki`,
+            payload: JSON.stringify({
+                user_id: userId,
+                amount: amount,
+                type: 'deposit'
+            })
+        };
+        
+        // Генерируем фиктивный чек (в реальности нужно использовать Crypto Bot API)
+        const invoiceUrl = `https://t.me/CryptoBot?start=invoice_${Date.now()}_${userId}_${amount}`;
+        
+        return {
+            success: true,
+            invoice_url: invoiceUrl,
+            invoice_id: `invoice_${Date.now()}_${userId}`
+        };
+    } catch (error) {
+        console.error('❌ Ошибка создания чека:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
 exports.handler = async (event, context) => {
     console.log('🎰 Casino Function called');
     
@@ -159,7 +207,9 @@ exports.handler = async (event, context) => {
                 message: '🎰 Casino API is working!',
                 server: 'Netlify Functions',
                 timestamp: new Date().toISOString(),
-                total_users: users.size
+                total_users: users.size,
+                free_lootbox_enabled: freeLootboxEnabled,
+                lootbox_prizes_remaining: lootboxPrizes.length
             })
         };
     }
@@ -176,19 +226,23 @@ exports.handler = async (event, context) => {
             const username = data.username || 'user_' + userId;
             const firstName = data.first_name || 'Игрок';
 
-            // Initialize user if not exists
+            // Initialize user if not exists - НЕ ДОБАВЛЯЕМ БАЛАНС ПРИ КАЖДОМ ЗАПРОСЕ
             if (!users.has(userId)) {
                 users.set(userId, {
                     user_id: userId,
                     username: username,
                     first_name: firstName,
-                    balance: 222,
+                    balance: 0, // НАЧАЛЬНЫЙ БАЛАНС 0
                     games_played: 0,
                     total_won: 0,
                     biggest_win: 0,
                     wins_count: 0,
                     created_at: new Date().toISOString(),
-                    last_activity: new Date().toISOString()
+                    last_activity: new Date().toISOString(),
+                    inventory: [],
+                    free_spins_used: 0,
+                    miner_games_played: 0,
+                    miner_total_won: 0
                 });
                 console.log(`✅ Created new user: ${userId}`);
             }
@@ -200,60 +254,65 @@ exports.handler = async (event, context) => {
 
             // Process actions
             switch (action) {
-
                 case 'register_telegram_user':
-    // Проверяем, не зарегистрирован ли пользователь уже
-    if (users.has(userId)) {
-        logger.info(`🔄 Пользователь ${userId} уже зарегистрирован, обновляем данные`);
-        user = users.get(userId);
-    } else {
-        // Создаем нового пользователя
-        user = {
-            user_id: userId,
-            username: data.username,
-            first_name: data.first_name,
-            balance: 222,
-            games_played: 0,
-            total_won: 0,
-            biggest_win: 0,
-            wins_count: 0,
-            created_at: new Date().toISOString(),
-            last_activity: new Date().toISOString()
-        };
-        users.set(userId, user);
-        logger.info(`✅ Новый пользователь зарегистрирован: ${userId}`);
-    }
-    
-    // Обновляем данные пользователя
-    if (data.photo_url) user.photo_url = data.photo_url;
-    if (data.language_code) user.language_code = data.language_code;
-    if (data.is_premium !== undefined) user.is_premium = data.is_premium;
-    
-    user.last_activity = new Date().toISOString();
-    
-    result.user_data = user;
-    result.message = 'Telegram user processed successfully';
-    
-    // Отправляем уведомление админу только для НОВЫХ пользователей
-    if (!users.has(userId) && userId != ADMIN_ID) {
-        await sendTelegramMessage(
-            ADMIN_CHAT_ID,
-            `👤 <b>НОВАЯ РЕГИСТРАЦИЯ</b>\n\n` +
-            `🆔 ID: <code>${userId}</code>\n` +
-            `📛 Username: @${data.username || 'нет'}\n` +
-            `👨‍💼 Имя: ${data.first_name}\n` +
-            `💎 Баланс: 222 ⭐\n` +
-            `🤖 Бот: ${botType}\n` +
-            `🕐 Время: ${new Date().toLocaleString()}`,
-            BOT_TOKENS.admin_notifications
-        );
-    }
-    break;
+                    // Проверяем, не зарегистрирован ли пользователь уже
+                    if (users.has(userId)) {
+                        console.log(`🔄 Пользователь ${userId} уже зарегистрирован, обновляем данные`);
+                    } else {
+                        // Создаем нового пользователя с балансом 0
+                        const newUser = {
+                            user_id: userId,
+                            username: data.username,
+                            first_name: data.first_name,
+                            balance: 0, // НАЧАЛЬНЫЙ БАЛАНС 0
+                            games_played: 0,
+                            total_won: 0,
+                            biggest_win: 0,
+                            wins_count: 0,
+                            created_at: new Date().toISOString(),
+                            last_activity: new Date().toISOString(),
+                            inventory: [],
+                            free_spins_used: 0,
+                            miner_games_played: 0,
+                            miner_total_won: 0
+                        };
+                        users.set(userId, newUser);
+                        console.log(`✅ Новый пользователь зарегистрирован: ${userId}`);
+                    }
+                    
+                    // Обновляем данные пользователя
+                    if (data.photo_url) user.photo_url = data.photo_url;
+                    if (data.language_code) user.language_code = data.language_code;
+                    if (data.is_premium !== undefined) user.is_premium = data.is_premium;
+                    
+                    user.last_activity = new Date().toISOString();
+                    
+                    result.user_data = user;
+                    result.message = 'Telegram user processed successfully';
+                    
+                    // Отправляем уведомление админу только для НОВЫХ пользователей
+                    if (!users.has(userId) && userId != ADMIN_CHAT_ID) {
+                        await sendTelegramMessage(
+                            ADMIN_CHAT_ID,
+                            `👤 <b>НОВАЯ РЕГИСТРАЦИЯ</b>\n\n` +
+                            `🆔 ID: <code>${userId}</code>\n` +
+                            `📛 Username: @${data.username || 'нет'}\n` +
+                            `👨‍💼 Имя: ${data.first_name}\n` +
+                            `💎 Баланс: 0 ⭐\n` +
+                            `🤖 Бот: ${botType}\n` +
+                            `🕐 Время: ${new Date().toLocaleString()}`,
+                            BOT_TOKENS.admin_notifications
+                        );
+                    }
+                    break;
 
                 case 'get_initial_data':
                     result.user_data = user;
                     result.game_history = [];
                     result.server = 'Netlify Functions';
+                    result.free_lootbox_enabled = freeLootboxEnabled;
+                    result.lootbox_prizes_remaining = lootboxPrizes.length;
+                    result.lootbox_cooldown = lootboxSpinCooldown;
                     break;
 
                 case 'update_balance':
@@ -279,19 +338,44 @@ exports.handler = async (event, context) => {
                     result.user_data = user;
                     break;
 
-                case 'deposit_request':
+                case 'create_invoice':
                     const depositAmount = data.amount || 0;
                     
-                    console.log(`💰 Deposit request from ${userId}: ${depositAmount} ⭐`);
+                    if (depositAmount <= 0) {
+                        result.success = false;
+                        result.error = 'Неверная сумма для пополнения';
+                        break;
+                    }
                     
-                    // АВТОМАТИЧЕСКОЕ ПОПОЛНЕНИЕ БАЛАНСА
+                    console.log(`💰 Create invoice request from ${userId}: ${depositAmount} USD`);
+                    
+                    const invoiceResult = await createCryptoBotInvoice(depositAmount, userId);
+                    
+                    if (invoiceResult.success) {
+                        result.invoice_url = invoiceResult.invoice_url;
+                        result.invoice_id = invoiceResult.invoice_id;
+                        result.amount = depositAmount;
+                        result.message = 'Invoice created successfully';
+                    } else {
+                        result.success = false;
+                        result.error = invoiceResult.error;
+                    }
+                    break;
+
+                case 'confirm_deposit':
+                    const confirmedAmount = data.amount || 0;
+                    const starsAmount = data.stars || 0;
+                    
+                    console.log(`💰 Deposit confirmed for ${userId}: ${confirmedAmount} USD -> ${starsAmount} ⭐`);
+                    
                     const oldBalance = user.balance;
-                    user.balance += depositAmount;
+                    user.balance += starsAmount;
                     
                     console.log(`💰 Баланс пользователя ${userId} пополнен: ${oldBalance} -> ${user.balance} ⭐`);
                     
                     result.user_data = user;
-                    result.deposit_amount = depositAmount;
+                    result.deposit_amount = confirmedAmount;
+                    result.stars_added = starsAmount;
                     result.old_balance = oldBalance;
                     result.new_balance = user.balance;
                     
@@ -299,16 +383,157 @@ exports.handler = async (event, context) => {
                     await sendTelegramMessage(
                         ADMIN_CHAT_ID,
                         `💰 <b>БАЛАНС ПОПОЛНЕН</b>\n\n` +
-                        `👤 <b>Пользователь:</b> ${firstName}\n` +
+                        `👤 <b>Пользователь:</b> ${user.first_name}\n` +
                         `🆔 <b>ID:</b> <code>${userId}</code>\n` +
-                        `📛 <b>Username:</b> @${username || 'нет'}\n` +
-                        `💎 <b>Сумма пополнения:</b> ${depositAmount} ⭐\n` +
+                        `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
+                        `💵 <b>Сумма пополнения:</b> ${confirmedAmount} USD\n` +
+                        `💎 <b>Добавлено звезд:</b> ${starsAmount} ⭐\n` +
                         `📊 <b>Было:</b> ${oldBalance} ⭐\n` +
                         `🔄 <b>Стало:</b> ${user.balance} ⭐\n` +
                         `🤖 <b>Бот:</b> ${botType}`,
                         BOT_TOKENS.admin_notifications
                     );
                     
+                    break;
+
+                case 'free_lootbox_spin':
+                    if (!freeLootboxEnabled) {
+                        result.success = false;
+                        result.error = 'Бесплатная лудка закрыта';
+                        break;
+                    }
+
+                    // Проверяем кулдаун
+                    const lastSpin = lootboxLastSpin.get(userId);
+                    const now = Date.now();
+                    if (lastSpin && (now - lastSpin) < (lootboxSpinCooldown * 1000)) {
+                        const remaining = Math.ceil((lootboxSpinCooldown * 1000 - (now - lastSpin)) / 1000);
+                        result.success = false;
+                        result.error = `Подождите ${remaining} секунд до следующей прокрутки`;
+                        break;
+                    }
+
+                    // Проверяем остались ли призы
+                    if (lootboxPrizes.length === 0) {
+                        result.success = false;
+                        result.error = 'Все призы разыграны';
+                        freeLootboxEnabled = false;
+                        break;
+                    }
+
+                    // Симуляция прокрутки лудки
+                    const symbols = ['lemon', 'cherry', 'bar', 'seven'];
+                    const spinResult = [
+                        symbols[Math.floor(Math.random() * symbols.length)],
+                        symbols[Math.floor(Math.random() * symbols.length)],
+                        symbols[Math.floor(Math.random() * symbols.length)]
+                    ];
+
+                    result.spin_result = spinResult;
+                    result.win = false;
+                    result.prize = null;
+
+                    // Проверяем выигрыш (три семерки)
+                    if (spinResult.every(symbol => symbol === 'seven')) {
+                        // Выдаем приз
+                        const prize = lootboxPrizes.shift();
+                        result.win = true;
+                        result.prize = prize;
+
+                        // Обновляем баланс пользователя
+                        user.balance += prize.value;
+                        if (!user.inventory) user.inventory = [];
+                        user.inventory.push(prize);
+
+                        // Уведомление админу
+                        await sendTelegramMessage(
+                            ADMIN_CHAT_ID,
+                            `🎰 <b>ВЫИГРЫШ В БЕСПЛАТНОЙ ЛУДКЕ!</b>\n\n` +
+                            `👤 <b>Пользователь:</b> ${user.first_name}\n` +
+                            `🆔 <b>ID:</b> <code>${userId}</code>\n` +
+                            `📛 <b>Username:</b> @${user.username || 'нет'}\n` +
+                            `🎁 <b>Приз:</b> ${prize.name}\n` +
+                            `💎 <b>Стоимость:</b> ${prize.value} ⭐\n` +
+                            `📊 <b>Осталось призов:</b> ${lootboxPrizes.length}\n` +
+                            `🕐 <b>Время:</b> ${new Date().toLocaleString()}`,
+                            BOT_TOKENS.admin_notifications
+                        );
+
+                        // Если призы закончились - закрываем лудку
+                        if (lootboxPrizes.length === 0) {
+                            freeLootboxEnabled = false;
+                            await sendTelegramMessage(
+                                ADMIN_CHAT_ID,
+                                `🔒 <b>БЕСПЛАТНАЯ ЛУДКА ЗАКРЫТА</b>\n\n` +
+                                `📊 <b>Причина:</b> Все призы разыграны\n` +
+                                `🎁 <b>Всего призов:</b> ${lootboxPrizes.length}\n` +
+                                `🕐 <b>Время:</b> ${new Date().toLocaleString()}`,
+                                BOT_TOKENS.admin_notifications
+                            );
+                        }
+                    }
+
+                    lootboxLastSpin.set(userId, now);
+                    user.free_spins_used = (user.free_spins_used || 0) + 1;
+                    result.user_data = user;
+                    result.prizes_remaining = lootboxPrizes.length;
+                    break;
+
+                case 'miner_game':
+                    const bombCount = data.bomb_count || 1;
+                    const betAmount = data.bet_amount || 0;
+                    
+                    if (betAmount <= 0) {
+                        result.success = false;
+                        result.error = 'Неверная сумма ставки';
+                        break;
+                    }
+                    
+                    if (user.balance < betAmount) {
+                        result.success = false;
+                        result.error = 'Недостаточно звезд';
+                        break;
+                    }
+                    
+                    // Симуляция игры в минёра
+                    const totalCells = 9;
+                    const bombPositions = [];
+                    
+                    // Генерируем позиции бомб
+                    while (bombPositions.length < bombCount) {
+                        const pos = Math.floor(Math.random() * totalCells);
+                        if (!bombPositions.includes(pos)) {
+                            bombPositions.push(pos);
+                        }
+                    }
+                    
+                    // Пользователь "открывает" клетки (в реальной игре это делается на клиенте)
+                    // Здесь симулируем результат
+                    const openedCell = Math.floor(Math.random() * totalCells);
+                    const isBomb = bombPositions.includes(openedCell);
+                    
+                    user.balance -= betAmount;
+                    user.miner_games_played = (user.miner_games_played || 0) + 1;
+                    
+                    if (!isBomb) {
+                        const multiplier = minerMultipliers[bombCount];
+                        const winAmount = betAmount * multiplier;
+                        
+                        user.balance += winAmount;
+                        user.miner_total_won = (user.miner_total_won || 0) + winAmount;
+                        
+                        result.win = true;
+                        result.win_amount = winAmount;
+                        result.multiplier = multiplier;
+                        result.message = `🎉 Вы выиграли ${winAmount} ⭐ (x${multiplier})!`;
+                    } else {
+                        result.win = false;
+                        result.message = '💥 Вы наткнулись на бомбу!';
+                    }
+                    
+                    result.user_data = user;
+                    result.bomb_positions = bombPositions;
+                    result.opened_cell = openedCell;
                     break;
 
                 case 'withdraw_prize':
@@ -350,6 +575,38 @@ exports.handler = async (event, context) => {
                     break;
 
                 // АДМИН КОМАНДЫ
+                case 'admin_set_lootbox':
+                    if (data.admin_id != ADMIN_CHAT_ID) {
+                        return {
+                            statusCode: 403,
+                            headers,
+                            body: JSON.stringify({ 
+                                success: false, 
+                                error: 'Admin access required' 
+                            })
+                        };
+                    }
+
+                    freeLootboxEnabled = data.enabled || false;
+                    lootboxPrizes = data.prizes || [];
+                    lootboxSpinCooldown = data.cooldown || 10;
+                    
+                    result.free_lootbox_enabled = freeLootboxEnabled;
+                    result.lootbox_prizes = lootboxPrizes;
+                    result.lootbox_cooldown = lootboxSpinCooldown;
+                    result.message = 'Настройки лудки обновлены';
+                    
+                    await sendTelegramMessage(
+                        ADMIN_CHAT_ID,
+                        `🎰 <b>НАСТРОЙКИ ЛУДКИ ОБНОВЛЕНЫ</b>\n\n` +
+                        `🔓 <b>Статус:</b> ${freeLootboxEnabled ? 'ОТКРЫТА' : 'ЗАКРЫТА'}\n` +
+                        `🎁 <b>Призов:</b> ${lootboxPrizes.length}\n` +
+                        `⏰ <b>Кулдаун:</b> ${lootboxSpinCooldown} сек\n` +
+                        `🕐 <b>Время:</b> ${new Date().toLocaleString()}`,
+                        BOT_TOKENS.admin_notifications
+                    );
+                    break;
+
                 case 'list_users':
                     console.log('📋 Запрос списка пользователей от админа');
                     
@@ -650,6 +907,8 @@ exports.handler = async (event, context) => {
                     result.server = 'Netlify Functions';
                     result.timestamp = new Date().toISOString();
                     result.total_users = users.size;
+                    result.free_lootbox_enabled = freeLootboxEnabled;
+                    result.lootbox_prizes_remaining = lootboxPrizes.length;
                     break;
 
                 default:

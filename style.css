@@ -220,6 +220,140 @@ html, body {
     font-size: 14px;
 }
 
+/* Welcome Section */
+.welcome-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.welcome-card {
+    background: rgba(22, 33, 62, 0.8);
+    border-radius: var(--border-radius);
+    padding: 40px 30px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-lg);
+}
+
+.welcome-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.welcome-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.welcome-text {
+    color: var(--text-secondary);
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.welcome-features {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 35px;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition);
+}
+
+.feature:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(5px);
+}
+
+.feature-icon {
+    font-size: 20px;
+    width: 30px;
+    text-align: center;
+}
+
+.feature-text {
+    color: var(--text-primary);
+    font-weight: 500;
+    flex: 1;
+    text-align: left;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 18px 24px;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: var(--border-radius);
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+}
+
+.login-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+}
+
+.login-btn:active {
+    transform: translateY(-1px);
+}
+
+.login-icon {
+    font-size: 22px;
+}
+
+.welcome-note {
+    margin-top: 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-style: italic;
+}
+
+.support-info {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.support-info a {
+    color: var(--accent-teal);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.support-info a:hover {
+    text-decoration: underline;
+}
+
 /* Slot Machine */
 .slot-machine {
     max-width: 440px;
@@ -489,6 +623,358 @@ html, body {
     transform: translateY(-2px);
 }
 
+/* Free Lootbox Styles */
+.lootbox-container {
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.lootbox-machine {
+    background: rgba(22, 33, 62, 0.8);
+    border-radius: var(--border-radius);
+    padding: 30px;
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    text-align: center;
+}
+
+.lootbox-display {
+    margin-bottom: 20px;
+}
+
+.lootbox-reels {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.lootbox-symbol {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    transition: var(--transition);
+}
+
+.lootbox-symbol.spinning {
+    animation: lootboxSpin 0.2s infinite;
+}
+
+@keyframes lootboxSpin {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.1) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+.lootbox-symbol img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.lootbox-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.lootbox-spin-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--gradient-gold);
+    border: none;
+    border-radius: var(--border-radius);
+    color: #000;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 20px;
+}
+
+.lootbox-spin-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+}
+
+.lootbox-spin-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.lootbox-rules {
+    text-align: left;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: var(--border-radius-sm);
+    border-left: 4px solid var(--accent-gold);
+}
+
+.lootbox-rules h4 {
+    margin-bottom: 10px;
+    color: var(--text-accent);
+}
+
+.lootbox-rules ul {
+    list-style: none;
+    padding: 0;
+}
+
+.lootbox-rules li {
+    padding: 5px 0;
+    color: var(--text-secondary);
+    position: relative;
+    padding-left: 20px;
+}
+
+.lootbox-rules li:before {
+    content: '•';
+    color: var(--accent-gold);
+    position: absolute;
+    left: 0;
+}
+
+/* Lootbox Result */
+.lootbox-final-result {
+    text-align: center;
+}
+
+.lootbox-reels-final {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.lootbox-symbol-final {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 215, 0, 0.5);
+}
+
+.lootbox-win-message {
+    background: rgba(76, 175, 80, 0.2);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border: 2px solid #4CAF50;
+}
+
+.lootbox-win-message h3 {
+    color: #4CAF50;
+    margin-bottom: 10px;
+}
+
+.prize-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-accent);
+    margin: 10px 0;
+}
+
+.win-celebration {
+    font-size: 24px;
+    margin-top: 10px;
+}
+
+.lootbox-lose-message {
+    background: rgba(244, 67, 54, 0.2);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border: 2px solid #f44336;
+}
+
+.lootbox-lose-message h3 {
+    color: #f44336;
+    margin-bottom: 10px;
+}
+
+/* Miner Game Styles */
+.miner-game-container {
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.miner-settings {
+    background: rgba(22, 33, 62, 0.8);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.miner-setting {
+    margin-bottom: 20px;
+}
+
+.miner-setting label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.bomb-options {
+    display: flex;
+    gap: 10px;
+}
+
+.bomb-option {
+    flex: 1;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.bomb-option.active {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: var(--accent-gold);
+}
+
+.bomb-option .multiplier {
+    display: block;
+    font-size: 12px;
+    color: var(--text-accent);
+    margin-top: 4px;
+}
+
+.bet-options-miner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.bet-option-miner {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.bet-option-miner.active {
+    background: rgba(127, 43, 143, 0.2);
+    border: 2px solid var(--accent-purple);
+}
+
+.bet-option-miner:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.miner-info {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.miner-game-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: rgba(22, 33, 62, 0.6);
+    border-radius: var(--border-radius);
+}
+
+.miner-cell {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 20px;
+    border: 2px solid transparent;
+}
+
+.miner-cell:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.miner-cell.revealed {
+    background: rgba(76, 175, 80, 0.3);
+    border-color: #4CAF50;
+    cursor: default;
+}
+
+.miner-cell.bomb {
+    background: rgba(244, 67, 54, 0.3);
+    border-color: #f44336;
+    cursor: default;
+}
+
+.miner-play-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: var(--border-radius);
+    color: white;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 20px;
+}
+
+.miner-play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.miner-rules {
+    text-align: left;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: var(--border-radius-sm);
+    border-left: 4px solid var(--accent-teal);
+}
+
+.miner-rules h4 {
+    margin-bottom: 10px;
+    color: var(--accent-teal);
+}
+
+.miner-rules ul {
+    list-style: none;
+    padding: 0;
+}
+
+.miner-rules li {
+    padding: 5px 0;
+    color: var(--text-secondary);
+    position: relative;
+    padding-left: 20px;
+}
+
+.miner-rules li:before {
+    content: '•';
+    color: var(--accent-teal);
+    position: absolute;
+    left: 0;
+}
+
 /* History Section */
 .history-list {
     max-width: 440px;
@@ -597,42 +1083,118 @@ html, body {
     border-left-color: #666;
 }
 
-/* NFT Market */
-.nft-catalog {
+/* NFT Market Styles */
+.nft-market-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.nft-market-header h3 {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+}
+
+.nft-market-header p {
+    color: var(--text-secondary);
+    font-size: 16px;
+}
+
+.nft-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
-.nft-card {
-    background: rgba(22, 33, 62, 0.6);
-    border-radius: var(--border-radius);
-    padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
+.nft-card-portal {
+    background: linear-gradient(135deg, rgba(22, 33, 62, 0.8) 0%, rgba(42, 53, 92, 0.6) 100%);
+    border-radius: 20px;
+    padding: 0;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    backdrop-filter: blur(20px);
     transition: var(--transition);
     position: relative;
     overflow: hidden;
 }
 
-.nft-card:hover {
-    transform: translateY(-5px);
-    background: rgba(22, 33, 62, 0.8);
-    box-shadow: var(--shadow-lg);
+.nft-card-portal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(0, 212, 255, 0.1) 50%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.nft-card-portal:hover::before {
+    opacity: 1;
+}
+
+.nft-card-portal:hover {
+    transform: translateY(-10px) scale(1.02);
+    border-color: rgba(0, 212, 255, 0.6);
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.4),
+        0 0 50px rgba(0, 212, 255, 0.2);
+}
+
+.nft-card-inner {
+    position: relative;
+    z-index: 2;
+}
+
+.nft-image-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 15px 15px 0 0;
+}
+
+.nft-image-animated {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.nft-card-portal:hover .nft-image-animated {
+    transform: scale(1.1);
+}
+
+.nft-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 15px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.nft-card-portal:hover .nft-overlay {
+    opacity: 1;
 }
 
 .nft-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
+    align-self: flex-start;
     padding: 6px 12px;
-    border-radius: 20px;
+    border-radius: 15px;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .nft-badge.common {
@@ -655,72 +1217,178 @@ html, body {
     color: #000;
 }
 
-.nft-image {
-    width: 100%;
-    height: 200px;
-    object-fit: contain;
-    border-radius: var(--border-radius-sm);
-    margin-bottom: 15px;
-    background: rgba(0, 0, 0, 0.3);
-    padding: 10px;
-}
-
-.nft-info {
-    text-align: center;
-}
-
-.nft-name {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-}
-
-.nft-description {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-    line-height: 1.4;
-}
-
-.nft-creator {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-}
-
-.nft-supply {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 15px;
-}
-
-.nft-price {
+.nft-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: 10px;
 }
 
-.price-amount {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--text-accent);
-}
-
-.buy-btn {
-    padding: 10px 20px;
-    background: var(--gradient-primary);
+.nft-preview-btn {
+    padding: 8px 16px;
+    background: rgba(0, 212, 255, 0.9);
     border: none;
-    border-radius: var(--border-radius-sm);
+    border-radius: 20px;
     color: white;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
 }
 
-.buy-btn:hover {
+.nft-preview-btn:hover {
+    background: rgba(0, 212, 255, 1);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.nft-info-portal {
+    padding: 20px;
+}
+
+.nft-name-glow {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #ffffff 0%, #00d4ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nft-description {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 15px;
+}
+
+.nft-stats {
+    margin-bottom: 20px;
+}
+
+.nft-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 12px;
+}
+
+.nft-stat:last-child {
+    border-bottom: none;
+}
+
+.nft-stat span:first-child {
+    color: var(--text-secondary);
+}
+
+.nft-stat span:last-child {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.nft-price-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nft-price-glow {
+    font-size: 24px;
+    font-weight: 800;
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.buy-btn-portal {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.buy-btn-portal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 212, 255, 0.4);
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(22, 33, 62, 0.9);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    padding: 10px;
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+    gap: 5px;
+}
+
+.nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 5px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    opacity: 0.7;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.nav-item.active {
+    opacity: 1;
+    background: rgba(127, 43, 143, 0.15);
+    transform: translateY(-2px);
+}
+
+.nav-item.active::before {
+    transform: scaleX(1);
+}
+
+.nav-item:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-icon {
+    font-size: 22px;
+    margin-bottom: 4px;
+    transition: var(--transition);
+}
+
+.nav-item.active .nav-icon {
+    transform: scale(1.1);
+}
+
+.nav-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 /* Profile Panel */
@@ -838,6 +1506,9 @@ html, body {
     transition: var(--transition);
     box-shadow: 0 8px 24px rgba(0, 136, 204, 0.4);
     margin-bottom: 15px;
+    border: none;
+    width: 100%;
+    cursor: pointer;
 }
 
 .telegram-auth-btn:hover {
@@ -856,6 +1527,10 @@ html, body {
 }
 
 /* User Profile in Panel */
+.user-profile {
+    text-align: center;
+}
+
 .user-header {
     text-align: center;
     margin-bottom: 25px;
@@ -1013,6 +1688,43 @@ html, body {
     font-size: 14px;
 }
 
+.support-card {
+    background: rgba(22, 33, 62, 0.6);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.support-card h4 {
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.support-card p {
+    color: var(--text-secondary);
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.support-link {
+    display: block;
+    padding: 12px;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid var(--accent-teal);
+    border-radius: var(--border-radius-sm);
+    color: var(--accent-teal);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.support-link:hover {
+    background: rgba(0, 212, 255, 0.3);
+    transform: translateY(-2px);
+}
+
 .user-actions {
     margin-top: 25px;
 }
@@ -1032,79 +1744,6 @@ html, body {
 .logout-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
-}
-
-/* Bottom Navigation */
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(22, 33, 62, 0.9);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    display: flex;
-    padding: 10px;
-    backdrop-filter: blur(20px);
-    z-index: 1000;
-    gap: 5px;
-}
-
-.nav-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 5px;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: var(--transition);
-    opacity: 0.7;
-    position: relative;
-    overflow: hidden;
-}
-
-.nav-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-primary);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
-}
-
-.nav-item.active {
-    opacity: 1;
-    background: rgba(127, 43, 143, 0.15);
-    transform: translateY(-2px);
-}
-
-.nav-item.active::before {
-    transform: scaleX(1);
-}
-
-.nav-item:hover {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.nav-icon {
-    font-size: 22px;
-    margin-bottom: 4px;
-    transition: var(--transition);
-}
-
-.nav-item.active .nav-icon {
-    transform: scale(1.1);
-}
-
-.nav-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
 }
 
 /* Modal Styles */
@@ -1191,15 +1830,21 @@ html, body {
     padding: 25px;
 }
 
-/* Deposit Modal */
-.deposit-options {
+/* Crypto Deposit Modal */
+.crypto-info {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.crypto-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 25px;
 }
 
-.deposit-option {
+.crypto-option {
     padding: 20px 12px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: var(--border-radius-sm);
@@ -1207,52 +1852,30 @@ html, body {
     cursor: pointer;
     border: 2px solid transparent;
     transition: var(--transition);
-    position: relative;
-    overflow: hidden;
 }
 
-.deposit-option::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-primary);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
-}
-
-.deposit-option:hover {
+.crypto-option:hover {
     background: rgba(255, 255, 255, 0.12);
-    transform: translateY(-2px);
 }
 
-.deposit-option.selected {
-    background: rgba(127, 43, 143, 0.2);
-    border-color: var(--accent-purple);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(127, 43, 143, 0.3);
+.crypto-option.selected {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: var(--accent-teal);
 }
 
-.deposit-option.selected::before {
-    transform: scaleX(1);
-}
-
-.deposit-amount {
+.crypto-amount {
     font-size: 18px;
     font-weight: 800;
     margin-bottom: 6px;
     color: var(--text-accent);
 }
 
-.deposit-price {
-    font-size: 13px;
+.crypto-stars {
+    font-size: 14px;
     color: var(--text-secondary);
-    font-weight: 500;
 }
 
-.selected-deposit {
+.selected-crypto {
     text-align: center;
     padding: 18px;
     background: rgba(255, 255, 255, 0.05);
@@ -1262,13 +1885,70 @@ html, body {
     border: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
-.deposit-actions {
+.crypto-actions {
     display: flex;
     gap: 15px;
 }
 
-.deposit-actions .modal-btn {
+.crypto-actions .modal-btn {
     flex: 1;
+}
+
+/* Modal Buttons */
+.modal-btn {
+    padding: 14px 20px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.modal-btn:hover::before {
+    left: 100%;
+}
+
+.modal-btn.primary {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.modal-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.6);
+}
+
+.modal-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Prize Modal */
@@ -1349,12 +2029,11 @@ html, body {
 }
 
 /* NFT Preview in Modal */
-.nft-preview {
+.nft-preview-buy {
     text-align: center;
-    margin-bottom: 20px;
 }
 
-.preview-image {
+.preview-image-buy {
     width: 120px;
     height: 120px;
     object-fit: contain;
@@ -1362,6 +2041,10 @@ html, body {
     border-radius: var(--border-radius-sm);
     background: rgba(0, 0, 0, 0.3);
     padding: 10px;
+}
+
+.preview-details {
+    text-align: left;
 }
 
 .preview-name {
@@ -1405,6 +2088,13 @@ html, body {
     color: var(--text-secondary);
     font-size: 14px;
     line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+.preview-creator, .preview-supply {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
 }
 
 .nft-price-info {
@@ -1438,61 +2128,67 @@ html, body {
     flex: 1;
 }
 
-/* Modal Buttons */
-.modal-btn {
-    padding: 14px 20px;
-    border: none;
-    border-radius: var(--border-radius-sm);
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
+/* NFT Preview Modal */
+.nft-preview-modal .modal-content {
+    max-width: 500px;
 }
 
-.modal-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
+.nft-preview-large {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.modal-btn:hover::before {
-    left: 100%;
+.preview-image-large {
+    width: 200px;
+    height: 200px;
+    object-fit: contain;
+    margin-bottom: 20px;
+    border-radius: var(--border-radius);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
 }
 
-.modal-btn.primary {
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+.preview-info {
+    text-align: center;
 }
 
-.modal-btn.primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.6);
-}
-
-.modal-btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
+.preview-info h3 {
+    font-size: 24px;
+    margin-bottom: 10px;
     color: var(--text-primary);
-    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.modal-btn.secondary:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
+.preview-stats {
+    margin: 15px 0;
 }
 
-.modal-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+.preview-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+}
+
+.preview-stat:last-child {
+    border-bottom: none;
+}
+
+.preview-stat span:first-child {
+    color: var(--text-secondary);
+}
+
+.preview-stat span:last-child {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.preview-price {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-accent);
+    margin-top: 15px;
 }
 
 /* Notification */
@@ -1555,6 +2251,27 @@ html, body {
     filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4));
 }
 
+/* Proxy Banner */
+.proxy-banner {
+    background: linear-gradient(135deg, #ff6b6b, #ffa502);
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.proxy-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.proxy-icon {
+    font-size: 16px;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .header {
@@ -1606,7 +2323,7 @@ html, body {
         right: 0;
     }
     
-    .nft-catalog {
+    .nft-grid {
         grid-template-columns: 1fr;
     }
     
@@ -1617,6 +2334,25 @@ html, body {
     .nav-label {
         font-size: 10px;
     }
+    
+    .lootbox-symbol {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .lootbox-symbol img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .miner-game-board {
+        padding: 15px;
+        gap: 8px;
+    }
+    
+    .crypto-options {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Disable zoom */
@@ -1626,120 +2362,7 @@ body {
     text-size-adjust: none;
 }
 
-/* Welcome Section */
-.welcome-container {
-    max-width: 500px;
-    margin: 0 auto;
-    padding: 40px 20px;
-}
-
-.welcome-card {
-    background: rgba(22, 33, 62, 0.8);
-    border-radius: var(--border-radius);
-    padding: 40px 30px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    box-shadow: var(--shadow-lg);
-}
-
-.welcome-icon {
-    font-size: 80px;
-    margin-bottom: 20px;
-    animation: bounce 2s ease-in-out infinite;
-}
-
-.welcome-title {
-    font-size: 28px;
-    font-weight: 800;
-    margin-bottom: 15px;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.welcome-text {
-    color: var(--text-secondary);
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 30px;
-}
-
-.welcome-features {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 35px;
-}
-
-.feature {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius-sm);
-    transition: var(--transition);
-}
-
-.feature:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateX(5px);
-}
-
-.feature-icon {
-    font-size: 20px;
-    width: 30px;
-    text-align: center;
-}
-
-.feature-text {
-    color: var(--text-primary);
-    font-weight: 500;
-    flex: 1;
-    text-align: left;
-}
-
-.login-btn {
-    width: 100%;
-    padding: 18px 24px;
-    background: var(--gradient-primary);
-    border: none;
-    border-radius: var(--border-radius);
-    color: white;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-}
-
-.login-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
-}
-
-.login-btn:active {
-    transform: translateY(-1px);
-}
-
-.login-icon {
-    font-size: 22px;
-}
-
-.welcome-note {
-    margin-top: 20px;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-style: italic;
-}
-
-/* Адаптивность для welcome-страницы */
+/* Welcome Section Responsive */
 @media (max-width: 480px) {
     .welcome-container {
         padding: 20px 15px;
